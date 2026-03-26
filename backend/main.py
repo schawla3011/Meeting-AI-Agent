@@ -1,18 +1,27 @@
 """
 Meeting Recorder – FastAPI Backend with Whisper Transcription
-POST /upload-audio  → saves file + transcribes via OpenAI Whisper
-GET  /health        → status check
+
+POST /upload-audio          → saves file, kicks off background transcription
+GET  /transcript/{filename} → poll for transcript once upload succeeds
+GET  /health                → status check
 
 Deployment: Works locally (port 8000) and on cloud platforms (Render, Railway, etc.)
 The PORT environment variable is injected automatically by cloud platforms.
+
+WHY BACKGROUND TRANSCRIPTION?
+Render's free tier proxy enforces a ~30 s request timeout. Whisper can take
+longer than that for real recordings, which causes the connection to be closed
+mid-response ("Stream Closed" on Android). Decoupling upload from transcription
+lets the upload respond in < 5 s and the app polls for the transcript separately.
 """
 
 import os
 import logging
+import threading
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
@@ -37,7 +46,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("meeting_recorder")
 
-app = FastAPI(title="Meeting Recorder API", version="2.0.0")
+app = FastAPI(title="Meeting Recorder API", version="3.0.0")
 
 # Allow requests from any origin (Android app, local testing, etc.)
 app.add_middleware(
@@ -47,6 +56,13 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# In-memory transcript store (keyed by saved filename)
+# Survives the life of the process; cleared on each deployment/restart.
+# ---------------------------------------------------------------------------
+_transcript_store: dict[str, str] = {}
+_transcript_lock  = threading.Lock()
 
 
 @app.on_event("startup")
@@ -74,11 +90,15 @@ async def health() -> dict:
 
 
 @app.post("/upload-audio")
-async def upload_audio(file: UploadFile = File(...)) -> JSONResponse:
+async def upload_audio(
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+) -> JSONResponse:
     """
     1. Validates MIME type and file size.
     2. Saves audio to `uploads/`.
-    3. Sends audio to OpenAI Whisper and returns the transcript.
+    3. Returns immediately (HTTP 200) so Render's 30 s proxy timeout is not hit.
+    4. Transcription runs in the background — poll GET /transcript/{filename}.
     """
 
     # 1. MIME guard
@@ -117,29 +137,71 @@ async def upload_audio(file: UploadFile = File(...)) -> JSONResponse:
     size_kb = round(size_bytes / 1024, 1)
     logger.info("Saved '%s' (%.1f KB)", safe_name, size_kb)
 
-    # 5. Transcribe with Whisper
-    transcript = _transcribe(save_path, size_mb)
+    # 5. Mark the transcript as "pending" so the poll endpoint knows it exists
+    with _transcript_lock:
+        _transcript_store[safe_name] = ""   # empty string = pending
 
-    # 6. Save transcript as a .txt file alongside the audio
-    if transcript:
-        txt_path = save_path.with_suffix(".txt")
-        try:
-            txt_path.write_text(transcript, encoding="utf-8")
-            logger.info("Transcript saved → %s", txt_path)
-        except OSError as exc:
-            logger.warning("Could not save transcript file: %s", exc)
+    # 6. Kick off transcription in the background (won't block the HTTP response)
+    background_tasks.add_task(_transcribe_and_store, save_path, safe_name, size_mb)
 
+    # 7. Return immediately — Android will poll /transcript/{filename}
     return JSONResponse(
         status_code=200,
         content={
             "success":    True,
             "filename":   safe_name,
             "size_kb":    size_kb,
-            "transcript": transcript,
-            "message":    "Audio uploaded and transcribed successfully."
-                          if transcript else "Audio uploaded (transcription skipped).",
+            "transcript": "",
+            "message":    "Audio uploaded. Transcription in progress – poll /transcript/" + safe_name,
         },
     )
+
+
+@app.get("/transcript/{filename}")
+async def get_transcript(filename: str) -> JSONResponse:
+    """
+    Poll this endpoint after a successful upload.
+    Returns {"ready": false} while transcription is running,
+    {"ready": true, "transcript": "..."} when done.
+    """
+    with _transcript_lock:
+        if filename not in _transcript_store:
+            # Also check disk (handles server restarts between upload and poll)
+            txt_path = Path(UPLOAD_DIR) / (Path(filename).stem + ".txt")
+            if txt_path.exists():
+                return JSONResponse({"ready": True, "transcript": txt_path.read_text("utf-8")})
+            raise HTTPException(404, f"No record for '{filename}'. Was the file uploaded?")
+
+        transcript = _transcript_store[filename]
+
+    # Empty string = still running; any other value (including error strings) = done
+    ready = transcript != ""
+    return JSONResponse({"ready": ready, "transcript": transcript if ready else ""})
+
+
+# ---------------------------------------------------------------------------
+# Background transcription task
+# ---------------------------------------------------------------------------
+
+def _transcribe_and_store(audio_path: Path, filename: str, size_mb: float) -> None:
+    """Runs in a background thread. Calls Whisper and stores the result."""
+    transcript = _transcribe(audio_path, size_mb)
+
+    # Ensure we never store empty string after transcription finishes
+    # (empty string is our "pending" sentinel)
+    if not transcript:
+        transcript = "[No speech detected or transcription skipped]"
+
+    with _transcript_lock:
+        _transcript_store[filename] = transcript
+
+    # Also save transcript to disk as .txt
+    txt_path = audio_path.with_suffix(".txt")
+    try:
+        txt_path.write_text(transcript, encoding="utf-8")
+        logger.info("Transcript saved → %s", txt_path)
+    except OSError as exc:
+        logger.warning("Could not save transcript file: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -153,7 +215,7 @@ def _transcribe(audio_path: Path, size_mb: float) -> str:
     """
     if not OPENAI_API_KEY:
         logger.info("Skipping transcription – OPENAI_API_KEY not set.")
-        return ""
+        return "[Transcription skipped: OPENAI_API_KEY not configured]"
 
     if size_mb > WHISPER_MAX_MB:
         logger.warning(
