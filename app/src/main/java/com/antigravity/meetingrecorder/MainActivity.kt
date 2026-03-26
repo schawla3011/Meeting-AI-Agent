@@ -7,19 +7,23 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.view.Gravity
 import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.antigravity.meetingrecorder.databinding.ActivityMainBinding
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
@@ -65,25 +69,27 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 RecordingService.ACTION_RECORDING_STATE -> {
-                    val recording  = intent.getBooleanExtra(RecordingService.EXTRA_IS_RECORDING, false)
-                    val uploading  = intent.getBooleanExtra(RecordingService.EXTRA_IS_UPLOADING, false)
+                    val recording = intent.getBooleanExtra(RecordingService.EXTRA_IS_RECORDING, false)
+                    val uploading = intent.getBooleanExtra(RecordingService.EXTRA_IS_UPLOADING, false)
                     updateUi(recording = recording, uploading = uploading)
                     if (!recording) stopTimer()
                 }
                 RecordingService.ACTION_FILE_SAVED -> {
                     val name = intent.getStringExtra(RecordingService.EXTRA_FILE_NAME)
-                    // Brief toast: file is saved; upload is about to start
                     showToast("✅ Saved: $name")
                     showUploadStatus(getString(R.string.upload_uploading), isError = false)
                 }
                 RecordingService.ACTION_UPLOAD_SUCCESS -> {
+                    // File is on the server; GPT analysis running in background
+                    showUploadStatus(getString(R.string.upload_transcribing), isError = false)
+                }
+                RecordingService.ACTION_UPLOAD_COMPLETE -> {
                     val filename   = intent.getStringExtra(RecordingService.EXTRA_UPLOAD_FILENAME) ?: ""
                     val sizeKb     = intent.getDoubleExtra(RecordingService.EXTRA_UPLOAD_SIZE_KB, 0.0)
                     val transcript = intent.getStringExtra(RecordingService.EXTRA_UPLOAD_TRANSCRIPT) ?: ""
-                    showUploadStatus(
-                        getString(R.string.upload_success, filename, sizeKb),
-                        isError = false
-                    )
+                    val analysisJson = intent.getStringExtra(RecordingService.EXTRA_UPLOAD_ANALYSIS) ?: ""
+                    showUploadStatus(getString(R.string.upload_success, filename, sizeKb), isError = false)
+                    showAnalysis(analysisJson)
                     showTranscript(transcript)
                     updateUi(recording = false, uploading = false)
                 }
@@ -164,6 +170,7 @@ class MainActivity : AppCompatActivity() {
             addAction(RecordingService.ACTION_RECORDING_STATE)
             addAction(RecordingService.ACTION_FILE_SAVED)
             addAction(RecordingService.ACTION_UPLOAD_SUCCESS)
+            addAction(RecordingService.ACTION_UPLOAD_COMPLETE)
             addAction(RecordingService.ACTION_UPLOAD_FAILURE)
             addAction(RecordingService.ACTION_ERROR)
         }
@@ -193,8 +200,7 @@ class MainActivity : AppCompatActivity() {
                 serviceConnection, BIND_AUTO_CREATE
             )
         }
-        clearTranscript()
-        clearUploadStatus()
+        clearResults()
         updateUi(recording = true, uploading = false)
         startTimer()
     }
@@ -229,7 +235,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUi(recording: Boolean, uploading: Boolean) {
-        // Status pill
         binding.statusPill.setBackgroundResource(
             if (recording) R.drawable.bg_status_recording else R.drawable.bg_status_idle
         )
@@ -241,35 +246,165 @@ class MainActivity : AppCompatActivity() {
             }
         )
         binding.ivStatusDot.visibility = if (recording) View.VISIBLE else View.INVISIBLE
-
-        // Upload progress
         binding.uploadProgressBar.visibility = if (uploading) View.VISIBLE else View.GONE
 
-        // Buttons
         val canStart = !recording && !uploading
         binding.btnStartMeeting.isEnabled = canStart
         binding.btnStartMeeting.alpha     = if (canStart) 1.0f else 0.4f
         binding.btnStopMeeting.isEnabled  = recording
         binding.btnStopMeeting.alpha      = if (recording) 1.0f else 0.4f
 
-        // Timer
-        if (!recording) {
-            binding.tvTimer.text = "00:00:00"
-        }
+        if (!recording) binding.tvTimer.text = "00:00:00"
     }
 
     private fun showUploadStatus(message: String, isError: Boolean) {
         binding.tvUploadStatus.text = message
         binding.tvUploadStatus.setTextColor(
-            getColor(if (isError) android.R.color.holo_red_light else android.R.color.holo_green_light)
+            getColor(if (isError) android.R.color.holo_red_light else R.color.text_secondary)
         )
         binding.tvUploadStatus.visibility = View.VISIBLE
     }
 
-    private fun clearUploadStatus() {
-        binding.tvUploadStatus.visibility = View.GONE
-        binding.tvUploadStatus.text = ""
+    // ------------------------------------------------------------------
+    // Analysis display (Summary + Tasks)
+    // ------------------------------------------------------------------
+
+    /**
+     * Parses the GPT analysis JSON and populates the Summary and Tasks cards.
+     * analysisJson: {"summary": "• ...\n• ...", "tasks": [{"task": ..., "owner": ..., "deadline": ...}]}
+     */
+    private fun showAnalysis(analysisJson: String) {
+        if (analysisJson.isBlank()) {
+            binding.summaryCard.visibility = View.GONE
+            binding.tasksCard.visibility   = View.GONE
+            return
+        }
+
+        try {
+            val obj     = JSONObject(analysisJson)
+            val summary = obj.optString("summary", "").trim()
+            val tasks   = obj.optJSONArray("tasks")
+
+            // --- Summary card ---
+            if (summary.isNotBlank()) {
+                binding.tvSummary.text = summary
+                binding.summaryCard.visibility = View.VISIBLE
+            } else {
+                binding.summaryCard.visibility = View.GONE
+            }
+
+            // --- Tasks card ---
+            binding.tasksContainer.removeAllViews()
+            if (tasks != null && tasks.length() > 0) {
+                for (i in 0 until tasks.length()) {
+                    val task = tasks.getJSONObject(i)
+                    addTaskRow(
+                        taskText     = task.optString("task", ""),
+                        owner        = task.optString("owner", "Unassigned"),
+                        deadline     = task.optString("deadline", "Not specified"),
+                        isLast       = i == tasks.length() - 1
+                    )
+                }
+                binding.tasksCard.visibility = View.VISIBLE
+            } else {
+                // Show empty state
+                val empty = TextView(this).apply {
+                    text      = getString(R.string.tasks_empty)
+                    textSize  = 14f
+                    setTextColor(getColor(R.color.text_hint))
+                }
+                binding.tasksContainer.addView(empty)
+                binding.tasksCard.visibility = View.VISIBLE
+            }
+
+        } catch (e: Exception) {
+            // Malformed JSON — hide analysis cards silently
+            binding.summaryCard.visibility = View.GONE
+            binding.tasksCard.visibility   = View.GONE
+        }
     }
+
+    /**
+     * Inflates a single task row and adds it to tasksContainer.
+     */
+    private fun addTaskRow(taskText: String, owner: String, deadline: String, isLast: Boolean) {
+        val dp = resources.displayMetrics.density
+
+        // Outer row container
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val vPad = (12 * dp).toInt()
+            setPadding(0, vPad, 0, vPad)
+        }
+
+        // Task text
+        val tvTask = TextView(this).apply {
+            text      = taskText
+            textSize  = 15f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(getColor(R.color.text_primary))
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.bottomMargin = (6 * dp).toInt()
+            layoutParams = lp
+        }
+        row.addView(tvTask)
+
+        // Meta row: owner chip + deadline
+        val meta = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity     = Gravity.CENTER_VERTICAL
+        }
+
+        // Owner chip
+        val ownerChip = TextView(this).apply {
+            text      = "👤 $owner"
+            textSize  = 12f
+            setTextColor(getColor(R.color.owner_chip_text))
+            setBackgroundColor(getColor(R.color.owner_chip_bg))
+            val hPad = (8 * dp).toInt()
+            val vPad = (3 * dp).toInt()
+            setPadding(hPad, vPad, hPad, vPad)
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.marginEnd = (12 * dp).toInt()
+            layoutParams = lp
+        }
+        meta.addView(ownerChip)
+
+        // Deadline (only if meaningful)
+        if (deadline.isNotBlank() && !deadline.equals("not specified", ignoreCase = true)) {
+            val tvDeadline = TextView(this).apply {
+                text      = "🗓 $deadline"
+                textSize  = 12f
+                setTextColor(getColor(R.color.deadline_text))
+            }
+            meta.addView(tvDeadline)
+        }
+
+        row.addView(meta)
+
+        // Divider between tasks
+        if (!isLast) {
+            val divider = View(this).apply {
+                setBackgroundColor(getColor(R.color.divider))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1
+                )
+            }
+            row.addView(divider)
+        }
+
+        binding.tasksContainer.addView(row)
+    }
+
+    // ------------------------------------------------------------------
+    // Transcript display
+    // ------------------------------------------------------------------
 
     private fun showTranscript(text: String) {
         binding.transcriptCard.visibility = View.VISIBLE
@@ -277,10 +412,20 @@ class MainActivity : AppCompatActivity() {
                                     else getString(R.string.transcript_empty)
     }
 
-    private fun clearTranscript() {
-        binding.transcriptCard.visibility = View.GONE
-        binding.tvTranscript.text = ""
+    private fun clearResults() {
+        binding.tvUploadStatus.visibility  = View.GONE
+        binding.tvUploadStatus.text        = ""
+        binding.summaryCard.visibility     = View.GONE
+        binding.tasksCard.visibility       = View.GONE
+        binding.transcriptCard.visibility  = View.GONE
+        binding.tvTranscript.text          = ""
+        binding.tvSummary.text             = ""
+        binding.tasksContainer.removeAllViews()
     }
+
+    // ------------------------------------------------------------------
+    // Timer
+    // ------------------------------------------------------------------
 
     private fun startTimer() {
         handler.removeCallbacks(timerRunnable)
@@ -308,9 +453,8 @@ class MainActivity : AppCompatActivity() {
             setText(currentUrl)
             setTextColor(0xFFE0E0E0.toInt())
             setHintTextColor(0xFF9E9E9E.toInt())
-            hint = "http://192.168.x.x:8000"
+            hint = "https://your-app.onrender.com"
             setSingleLine()
-            // pad inside the dialog
             val dp16 = (16 * resources.displayMetrics.density).toInt()
             setPadding(dp16, dp16, dp16, dp16)
         }
@@ -324,17 +468,16 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("⚙️ Server URL")
             .setMessage(
+                "• Cloud: https://your-app.onrender.com\n" +
                 "• Emulator: http://10.0.2.2:8000\n" +
-                "• Real device: http://<your-Mac-IP>:8000\n\n" +
-                "Find Mac IP: System Settings → Wi-Fi → Details"
+                "• Real device: http://<Mac-IP>:8000"
             )
             .setView(container)
             .setPositiveButton("Save") { _, _ ->
                 val newUrl = input.text.toString().trim()
                 if (newUrl.isNotBlank()) {
                     val saved = ServerConfig.saveBaseUrl(this, newUrl)
-                    val note  = if (saved != newUrl) " (auto-corrected to http://)" else ""
-                    showToast("✅ Server URL saved: $saved$note")
+                    showToast("✅ Server URL saved: $saved")
                 } else {
                     showToast("⚠️ URL cannot be empty")
                 }

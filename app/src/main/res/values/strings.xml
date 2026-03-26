@@ -7,12 +7,21 @@
     <string name="btn_stop">Stop Meeting</string>
 
     <!-- Upload messages -->
-    <string name="upload_uploading">⬆️ Uploading &amp; transcribing…</string>
+    <string name="upload_uploading">⬆️ Uploading audio…</string>
+    <string name="upload_transcribing">🔄 Analysing with Whisper + GPT… (may take up to 2 min)</string>
     <string name="upload_success">✅ Uploaded: %1$s (%2$.1f KB)</string>
     <string name="upload_error">❌ Upload failed: %1$s</string>
     <string name="upload_network_error">📡 Network error: %1$s</string>
 
     <!-- Transcript -->
-    <string name="transcript_title">📝 MEETING TRANSCRIPT</string>
-    <string name="transcript_empty">No transcript available.\n(Check OPENAI_API_KEY in backend/.env)</string>
+    <string name="transcript_title">📝 TRANSCRIPT</string>
+    <string name="transcript_empty">No transcript available.\n(Check OPENAI_API_KEY in backend settings)</string>
+
+    <!-- Meeting Summary -->
+    <string name="summary_title">📋 MEETING SUMMARY</string>
+    <string name="summary_empty">No summary available.</string>
+
+    <!-- Action Items -->
+    <string name="tasks_title">✅ ACTION ITEMS</string>
+    <string name="tasks_empty">No action items found.</string>
 </resources>

@@ -10,13 +10,13 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="20dp">
 
         <!-- Settings gear top-right -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="4dp">
             <TextView
                 android:id="@+id/btn_settings"
                 android:layout_width="wrap_content"
@@ -34,7 +34,7 @@
             android:id="@+id/status_pill"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="20dp"
             android:background="@drawable/bg_status_idle"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -65,7 +65,8 @@
             android:id="@+id/tv_timer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
+            android:layout_marginBottom="28dp"
+            android:fontFamily="monospace"
             android:text="00:00:00"
             android:textColor="@color/text_primary"
             android:textSize="48sp"
@@ -75,26 +76,26 @@
         <Button
             android:id="@+id/btn_start_meeting"
             android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:layout_marginBottom="16dp"
+            android:layout_height="60dp"
+            android:layout_marginBottom="12dp"
             android:backgroundTint="@color/primary"
             android:text="@string/btn_start"
             android:textColor="@color/black"
-            android:textSize="18sp"
+            android:textSize="17sp"
             android:textStyle="bold" />
 
         <!-- Stop Button -->
         <Button
             android:id="@+id/btn_stop_meeting"
             android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:layout_marginBottom="24dp"
+            android:layout_height="60dp"
+            android:layout_marginBottom="20dp"
             android:alpha="0.4"
             android:backgroundTint="@color/status_red"
             android:enabled="false"
             android:text="@string/btn_stop"
             android:textColor="@color/white"
-            android:textSize="18sp"
+            android:textSize="17sp"
             android:textStyle="bold" />
 
         <!-- Upload Progress -->
@@ -102,7 +103,7 @@
             android:id="@+id/upload_progress_bar"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="8dp"
+            android:layout_height="6dp"
             android:layout_marginBottom="8dp"
             android:indeterminate="true"
             android:indeterminateTint="@color/primary"
@@ -119,12 +120,97 @@
             android:textSize="14sp"
             android:visibility="gone" />
 
-        <!-- ── Transcript Card ───────────────────────────────────────── -->
+        <!-- ── SUMMARY CARD ─────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/summary_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:background="@color/surface_dark"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <!-- Header row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/summary_title"
+                    android:textColor="@color/secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05" />
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="12dp"
+                android:background="@color/divider" />
+
+            <!-- Summary bullet text -->
+            <TextView
+                android:id="@+id/tv_summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingMultiplier="1.6"
+                android:textColor="@color/text_primary"
+                android:textIsSelectable="true"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <!-- ── TASKS CARD ──────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/tasks_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:background="@color/surface_dark"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <!-- Header -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="@string/tasks_title"
+                android:textColor="@color/accent_green"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05" />
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="8dp"
+                android:background="@color/divider" />
+
+            <!-- Task rows injected here dynamically -->
+            <LinearLayout
+                android:id="@+id/tasks_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <!-- ── TRANSCRIPT CARD ────────────────────────────────────── -->
         <LinearLayout
             android:id="@+id/transcript_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
             android:background="@color/surface_dark"
             android:orientation="vertical"
             android:padding="16dp"
@@ -133,20 +219,27 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="12dp"
                 android:text="@string/transcript_title"
                 android:textColor="@color/primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="12dp"
+                android:background="@color/divider" />
 
             <TextView
                 android:id="@+id/tv_transcript"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:lineSpacingMultiplier="1.4"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/text_secondary"
                 android:textIsSelectable="true"
-                android:textSize="15sp" />
+                android:textSize="13sp" />
         </LinearLayout>
 
     </LinearLayout>

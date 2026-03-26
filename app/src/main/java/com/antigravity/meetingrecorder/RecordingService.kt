@@ -175,8 +175,9 @@ class RecordingService : Service() {
 
             when (result) {
                 is UploadResult.Success -> {
-                    Log.i(TAG, "Upload success: ${result.filename} (${result.sizeKb} KB)")
-                    broadcastUploadSuccess(result)
+                    Log.i(TAG, "Upload+poll complete: ${result.filename} (${result.sizeKb} KB)")
+                    // Single broadcast now delivers both upload & transcript info
+                    broadcastUploadComplete(result)
                 }
                 is UploadResult.Failure -> {
                     Log.w(TAG, "Upload failed: ${result.error}")
@@ -310,12 +311,13 @@ class RecordingService : Service() {
         })
     }
 
-    private fun broadcastUploadSuccess(result: UploadResult.Success) {
-        sendBroadcast(Intent(ACTION_UPLOAD_SUCCESS).apply {
+    private fun broadcastUploadComplete(result: UploadResult.Success) {
+        sendBroadcast(Intent(ACTION_UPLOAD_COMPLETE).apply {
             putExtra(EXTRA_UPLOAD_FILENAME,   result.filename)
             putExtra(EXTRA_UPLOAD_SIZE_KB,    result.sizeKb)
             putExtra(EXTRA_UPLOAD_MESSAGE,    result.message)
             putExtra(EXTRA_UPLOAD_TRANSCRIPT, result.transcript)
+            putExtra(EXTRA_UPLOAD_ANALYSIS,   result.analysis)
         })
     }
 
@@ -343,7 +345,10 @@ class RecordingService : Service() {
 
         const val ACTION_RECORDING_STATE = "com.antigravity.meetingrecorder.RECORDING_STATE"
         const val ACTION_FILE_SAVED      = "com.antigravity.meetingrecorder.FILE_SAVED"
+        /** File has arrived on server; transcript polling is starting. */
         const val ACTION_UPLOAD_SUCCESS  = "com.antigravity.meetingrecorder.UPLOAD_SUCCESS"
+        /** Transcript polling finished (success or timeout); carries final transcript. */
+        const val ACTION_UPLOAD_COMPLETE = "com.antigravity.meetingrecorder.UPLOAD_COMPLETE"
         const val ACTION_UPLOAD_FAILURE  = "com.antigravity.meetingrecorder.UPLOAD_FAILURE"
         const val ACTION_ERROR           = "com.antigravity.meetingrecorder.ERROR"
 
@@ -355,6 +360,7 @@ class RecordingService : Service() {
         const val EXTRA_UPLOAD_SIZE_KB       = "upload_size_kb"
         const val EXTRA_UPLOAD_MESSAGE       = "upload_message"
         const val EXTRA_UPLOAD_TRANSCRIPT    = "upload_transcript"
+        const val EXTRA_UPLOAD_ANALYSIS      = "upload_analysis"
         const val EXTRA_UPLOAD_ERROR         = "upload_error"
         const val EXTRA_UPLOAD_IS_NETWORK_ERR= "upload_is_network_err"
         const val EXTRA_ERROR_MESSAGE        = "error_message"
