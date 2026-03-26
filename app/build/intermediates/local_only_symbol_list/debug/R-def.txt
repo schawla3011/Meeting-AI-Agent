@@ -1,13 +1,21 @@
 R_DEF: Internal format may change without notice
 local
+color accent_gold
+color accent_green
 color background_dark
 color black
+color deadline_text
+color divider
+color owner_chip_bg
+color owner_chip_text
 color primary
 color primary_variant
 color secondary
 color status_grey
 color status_red
 color surface_dark
+color surface_elevated
+color text_hint
 color text_primary
 color text_secondary
 color white
@@ -20,8 +28,12 @@ id btn_start_meeting
 id btn_stop_meeting
 id iv_status_dot
 id status_pill
+id summary_card
+id tasks_card
+id tasks_container
 id transcript_card
 id tv_status
+id tv_summary
 id tv_timer
 id tv_transcript
 id tv_upload_status
@@ -35,11 +47,16 @@ string btn_stop
 string status_idle
 string status_recording
 string status_uploading
+string summary_empty
+string summary_title
+string tasks_empty
+string tasks_title
 string transcript_empty
 string transcript_title
 string upload_error
 string upload_network_error
 string upload_success
+string upload_transcribing
 string upload_uploading
 style Theme.MeetingRecorder
 xml backup_rules

@@ -1,246 +1,304 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background_dark"
-    android:fillViewport="true">
+    android:orientation="vertical">
 
+    <!-- ═══════════════════ TOP BAR ═══════════════════ -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:layout_height="64dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="20dp"
+        android:background="@color/surface_dark"
+        android:orientation="horizontal">
 
-        <!-- Settings gear top-right -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp">
-            <TextView
-                android:id="@+id/btn_settings"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:padding="8dp"
-                android:text="⚙"
-                android:textColor="@color/text_secondary"
-                android:textSize="22sp"
-                android:contentDescription="Server settings" />
-        </FrameLayout>
-
-        <!-- Status Pill -->
+        <!-- Avatar circle + name -->
         <LinearLayout
-            android:id="@+id/status_pill"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:background="@drawable/bg_status_idle"
+            android:layout_weight="1"
             android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="8dp">
-
-            <ImageView
-                android:id="@+id/iv_status_dot"
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:layout_marginEnd="8dp"
-                android:src="@drawable/shape_dot_recording"
-                android:visibility="invisible"
-                android:contentDescription="Recording dot" />
+            android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/tv_status"
+                android:id="@+id/tv_avatar"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_avatar"
+                android:gravity="center"
+                android:text="JD"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/status_idle"
-                android:textColor="@color/white"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Timer -->
-        <TextView
-            android:id="@+id/tv_timer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="28dp"
-            android:fontFamily="monospace"
-            android:text="00:00:00"
-            android:textColor="@color/text_primary"
-            android:textSize="48sp"
-            android:textStyle="bold" />
-
-        <!-- Start Button -->
-        <Button
-            android:id="@+id/btn_start_meeting"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginBottom="12dp"
-            android:backgroundTint="@color/primary"
-            android:text="@string/btn_start"
-            android:textColor="@color/black"
-            android:textSize="17sp"
-            android:textStyle="bold" />
-
-        <!-- Stop Button -->
-        <Button
-            android:id="@+id/btn_stop_meeting"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginBottom="20dp"
-            android:alpha="0.4"
-            android:backgroundTint="@color/status_red"
-            android:enabled="false"
-            android:text="@string/btn_stop"
-            android:textColor="@color/white"
-            android:textSize="17sp"
-            android:textStyle="bold" />
-
-        <!-- Upload Progress -->
-        <ProgressBar
-            android:id="@+id/upload_progress_bar"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="6dp"
-            android:layout_marginBottom="8dp"
-            android:indeterminate="true"
-            android:indeterminateTint="@color/primary"
-            android:visibility="gone" />
-
-        <!-- Upload status text -->
-        <TextView
-            android:id="@+id/tv_upload_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:gravity="center"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            android:visibility="gone" />
-
-        <!-- ── SUMMARY CARD ─────────────────────────────────────────── -->
-        <LinearLayout
-            android:id="@+id/summary_card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:background="@color/surface_dark"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:visibility="gone">
-
-            <!-- Header row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:layout_marginStart="10dp"
+                android:orientation="vertical">
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:id="@+id/tv_user_name"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/summary_title"
-                    android:textColor="@color/secondary"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.05" />
+                    android:text="Welcome back"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_user_designation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Settings & Logout -->
+        <TextView
+            android:id="@+id/btn_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text="⚙"
+            android:textColor="@color/text_secondary"
+            android:textSize="20sp"
+            android:contentDescription="Settings" />
+
+        <TextView
+            android:id="@+id/btn_logout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:padding="8dp"
+            android:text="⏏"
+            android:textColor="@color/status_red"
+            android:textSize="20sp"
+            android:contentDescription="Logout" />
+    </LinearLayout>
+
+    <!-- ═══════════════════ SCROLLABLE BODY ═══════════════════ -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Status Pill -->
+            <LinearLayout
+                android:id="@+id/status_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_status_idle"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp">
+
+                <ImageView
+                    android:id="@+id/iv_status_dot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/shape_dot_recording"
+                    android:visibility="invisible"
+                    android:contentDescription="Recording indicator" />
+
+                <TextView
+                    android:id="@+id/tv_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/status_idle"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginBottom="12dp"
-                android:background="@color/divider" />
-
-            <!-- Summary bullet text -->
+            <!-- Timer -->
             <TextView
-                android:id="@+id/tv_summary"
-                android:layout_width="match_parent"
+                android:id="@+id/tv_timer"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:lineSpacingMultiplier="1.6"
+                android:layout_marginBottom="28dp"
+                android:fontFamily="monospace"
+                android:text="00:00:00"
                 android:textColor="@color/text_primary"
-                android:textIsSelectable="true"
-                android:textSize="15sp" />
-        </LinearLayout>
+                android:textSize="52sp"
+                android:textStyle="bold" />
 
-        <!-- ── TASKS CARD ──────────────────────────────────────────── -->
-        <LinearLayout
-            android:id="@+id/tasks_card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:background="@color/surface_dark"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:visibility="gone">
+            <!-- Recording FAB-style button -->
+            <Button
+                android:id="@+id/btn_start_meeting"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginBottom="12dp"
+                android:backgroundTint="@color/primary"
+                android:text="🎙  Start Meeting"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
-            <!-- Header -->
+            <!-- Stop button -->
+            <Button
+                android:id="@+id/btn_stop_meeting"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginBottom="20dp"
+                android:alpha="0.4"
+                android:backgroundTint="@color/status_red"
+                android:enabled="false"
+                android:text="⏹  Stop Meeting"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- Progress bar -->
+            <ProgressBar
+                android:id="@+id/upload_progress_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="5dp"
+                android:layout_marginBottom="8dp"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/primary"
+                android:visibility="gone" />
+
+            <!-- Upload status -->
             <TextView
+                android:id="@+id/tv_upload_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:gravity="center"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <!-- ── SUMMARY CARD ──────────────────────────────── -->
+            <LinearLayout
+                android:id="@+id/summary_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:text="@string/tasks_title"
+                android:background="@color/surface_dark"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/summary_title"
+                    android:textColor="@color/secondary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.06" />
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:layout_marginBottom="12dp" android:background="@color/divider" />
+
+                <TextView
+                    android:id="@+id/tv_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingMultiplier="1.7"
+                    android:textColor="@color/text_primary"
+                    android:textIsSelectable="true"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <!-- ── TASKS CARD ────────────────────────────────── -->
+            <LinearLayout
+                android:id="@+id/tasks_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@color/surface_dark"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/tasks_title"
+                    android:textColor="@color/accent_green"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.06" />
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:layout_marginBottom="8dp" android:background="@color/divider" />
+
+                <LinearLayout
+                    android:id="@+id/tasks_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <!-- ── EMAIL SENT BANNER ─────────────────────────── -->
+            <TextView
+                android:id="@+id/tv_email_sent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@color/surface_dark"
+                android:gravity="center"
+                android:padding="12dp"
                 android:textColor="@color/accent_green"
                 android:textSize="13sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.05" />
+                android:visibility="gone" />
 
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginBottom="8dp"
-                android:background="@color/divider" />
-
-            <!-- Task rows injected here dynamically -->
+            <!-- ── TRANSCRIPT CARD ───────────────────────────── -->
             <LinearLayout
-                android:id="@+id/tasks_container"
+                android:id="@+id/transcript_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:layout_marginBottom="8dp"
+                android:background="@color/surface_dark"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/transcript_title"
+                    android:textColor="@color/primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.06" />
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:layout_marginBottom="12dp" android:background="@color/divider" />
+
+                <TextView
+                    android:id="@+id/tv_transcript"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingMultiplier="1.4"
+                    android:textColor="@color/text_secondary"
+                    android:textIsSelectable="true"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
         </LinearLayout>
-
-        <!-- ── TRANSCRIPT CARD ────────────────────────────────────── -->
-        <LinearLayout
-            android:id="@+id/transcript_card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="@color/surface_dark"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:text="@string/transcript_title"
-                android:textColor="@color/primary"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.05" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginBottom="12dp"
-                android:background="@color/divider" />
-
-            <TextView
-                android:id="@+id/tv_transcript"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:lineSpacingMultiplier="1.4"
-                android:textColor="@color/text_secondary"
-                android:textIsSelectable="true"
-                android:textSize="13sp" />
-        </LinearLayout>
-
-    </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</LinearLayout>

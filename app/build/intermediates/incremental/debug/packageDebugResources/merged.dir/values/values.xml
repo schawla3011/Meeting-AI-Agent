@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="accent_gold">#FFD700</color>
+    <color name="accent_green">#4CAF7D</color>
     <color name="background_dark">#121212</color>
     <color name="black">#FF000000</color>
+    <color name="deadline_text">#FFAB40</color>
+    <color name="divider">#2C2C2C</color>
+    <color name="owner_chip_bg">#1F3A5F</color>
+    <color name="owner_chip_text">#64B5F6</color>
     <color name="primary">#BB86FC</color>
     <color name="primary_variant">#3700B3</color>
     <color name="secondary">#03DAC6</color>
     <color name="status_grey">#757575</color>
     <color name="status_red">#CF6679</color>
     <color name="surface_dark">#1E1E1E</color>
+    <color name="surface_elevated">#252525</color>
+    <color name="text_hint">#616161</color>
     <color name="text_primary">#E0E0E0</color>
     <color name="text_secondary">#9E9E9E</color>
     <color name="white">#FFFFFFFF</color>
@@ -17,12 +25,17 @@
     <string name="status_idle">Not Recording</string>
     <string name="status_recording">Recording</string>
     <string name="status_uploading">Uploading…</string>
-    <string name="transcript_empty">No transcript available.\n(Check OPENAI_API_KEY in backend/.env)</string>
-    <string name="transcript_title">📝 MEETING TRANSCRIPT</string>
+    <string name="summary_empty">No summary available.</string>
+    <string name="summary_title">📋 MEETING SUMMARY</string>
+    <string name="tasks_empty">No action items found.</string>
+    <string name="tasks_title">✅ ACTION ITEMS</string>
+    <string name="transcript_empty">No transcript available.\n(Check OPENAI_API_KEY in backend settings)</string>
+    <string name="transcript_title">📝 TRANSCRIPT</string>
     <string name="upload_error">❌ Upload failed: %1$s</string>
     <string name="upload_network_error">📡 Network error: %1$s</string>
     <string name="upload_success">✅ Uploaded: %1$s (%2$.1f KB)</string>
-    <string name="upload_uploading">⬆️ Uploading &amp; transcribing…</string>
+    <string name="upload_transcribing">🔄 Analysing with Whisper + GPT… (may take up to 2 min)</string>
+    <string name="upload_uploading">⬆️ Uploading audio…</string>
     <style name="Theme.MeetingRecorder" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_variant</item>

@@ -1346,6 +1346,8 @@ color abc_tint_edittext
 color abc_tint_seek_thumb
 color abc_tint_spinner
 color abc_tint_switch_track
+color accent_gold
+color accent_green
 color accent_material_dark
 color accent_material_light
 color androidx_core_ripple_material_light
@@ -1370,6 +1372,7 @@ color cardview_dark_background
 color cardview_light_background
 color cardview_shadow_end_color
 color cardview_shadow_start_color
+color deadline_text
 color design_bottom_navigation_shadow_color
 color design_box_stroke_color
 color design_dark_default_color_background
@@ -1412,6 +1415,7 @@ color dim_foreground_disabled_material_dark
 color dim_foreground_disabled_material_light
 color dim_foreground_material_dark
 color dim_foreground_material_light
+color divider
 color error_color_material_dark
 color error_color_material_light
 color foreground_material_dark
@@ -2071,6 +2075,8 @@ color mtrl_textinput_focused_box_stroke_color
 color mtrl_textinput_hovered_box_stroke_color
 color notification_action_color_filter
 color notification_icon_bg_color
+color owner_chip_bg
+color owner_chip_text
 color primary
 color primary_dark_material_dark
 color primary_dark_material_light
@@ -2091,12 +2097,14 @@ color secondary_text_disabled_material_light
 color status_grey
 color status_red
 color surface_dark
+color surface_elevated
 color switch_thumb_disabled_material_dark
 color switch_thumb_disabled_material_light
 color switch_thumb_material_dark
 color switch_thumb_material_light
 color switch_thumb_normal_material_dark
 color switch_thumb_normal_material_light
+color text_hint
 color text_primary
 color text_secondary
 color tooltip_background_dark
@@ -3520,6 +3528,7 @@ id stop
 id stretch
 id submenuarrow
 id submit_area
+id summary_card
 id supportScrollUp
 id tabMode
 id tag_accessibility_actions
@@ -3535,6 +3544,8 @@ id tag_transition_group
 id tag_unhandled_key_event_manager
 id tag_unhandled_key_listeners
 id tag_window_insets_animation_callback
+id tasks_card
+id tasks_container
 id text
 id text2
 id textEnd
@@ -3569,6 +3580,7 @@ id transition_scene_layoutid_cache
 id transition_transform
 id triangle
 id tv_status
+id tv_summary
 id tv_timer
 id tv_transcript
 id tv_upload_status
@@ -3965,11 +3977,16 @@ string status_bar_notification_info_overflow
 string status_idle
 string status_recording
 string status_uploading
+string summary_empty
+string summary_title
+string tasks_empty
+string tasks_title
 string transcript_empty
 string transcript_title
 string upload_error
 string upload_network_error
 string upload_success
+string upload_transcribing
 string upload_uploading
 style AlertDialog_AppCompat
 style AlertDialog_AppCompat_Light

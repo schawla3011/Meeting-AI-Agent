@@ -11,8 +11,11 @@ from POST and running Whisper + GPT in a BackgroundTask.
 import os
 import json
 import logging
+import smtplib
 import threading
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
@@ -29,6 +32,8 @@ UPLOAD_DIR       = "uploads"
 MAX_FILE_SIZE_MB = 500
 WHISPER_MAX_MB   = 24
 OPENAI_API_KEY   = os.environ.get("OPENAI_API_KEY", "")
+SMTP_EMAIL       = os.environ.get("SMTP_EMAIL", "")
+SMTP_PASSWORD    = os.environ.get("SMTP_PASSWORD", "")
 ALLOWED_TYPES    = {
     "audio/mp4", "audio/m4a", "audio/mpeg", "audio/aac",
     "audio/x-m4a", "application/octet-stream",
@@ -107,8 +112,137 @@ async def health() -> dict:
         "status": "ok",
         "upload_dir": str(Path(UPLOAD_DIR).resolve()),
         "transcription_enabled": bool(OPENAI_API_KEY),
+        "email_enabled": bool(SMTP_EMAIL and SMTP_PASSWORD),
         "gpt_model": GPT_MODEL,
     }
+
+
+class MomRequest(dict):
+    pass
+
+
+@app.post("/send-mom")
+async def send_mom(payload: dict) -> JSONResponse:
+    """
+    Sends a Meeting Minutes (MOM) email to the user.
+    Payload: {to_email, user_name, company, designation, meeting_date, summary, tasks[], transcript}
+    """
+    to_email     = payload.get("to_email", "").strip()
+    user_name    = payload.get("user_name", "there")
+    company      = payload.get("company", "")
+    designation  = payload.get("designation", "")
+    meeting_date = payload.get("meeting_date", datetime.now().strftime("%d %b %Y"))
+    summary      = payload.get("summary", "")
+    tasks        = payload.get("tasks", [])
+    transcript   = payload.get("transcript", "")
+
+    if not to_email:
+        raise HTTPException(400, "to_email is required")
+    if not (SMTP_EMAIL and SMTP_PASSWORD):
+        raise HTTPException(503, "SMTP not configured on server (SMTP_EMAIL / SMTP_PASSWORD env vars)")
+
+    html = _build_mom_html(
+        user_name=user_name, company=company, designation=designation,
+        meeting_date=meeting_date, summary=summary, tasks=tasks, transcript=transcript
+    )
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"📋 MOM – {meeting_date} | Anti Gravity Meeting Recorder"
+        msg["From"]    = SMTP_EMAIL
+        msg["To"]      = to_email
+        msg.attach(MIMEText(html, "html", "utf-8"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+
+        logger.info("MOM sent to %s", to_email)
+        return JSONResponse({"success": True, "message": f"MOM sent to {to_email}"})
+
+    except Exception as exc:
+        logger.error("SMTP error: %s", exc)
+        raise HTTPException(500, f"Email send failed: {exc}") from exc
+
+
+def _build_mom_html(
+    user_name: str, company: str, designation: str,
+    meeting_date: str, summary: str, tasks: list, transcript: str
+) -> str:
+    """Returns a clean HTML email with summary, tasks table, and transcript."""
+
+    # Summary bullets
+    summary_html = ""
+    if summary:
+        bullets = [b.strip().lstrip("•").strip() for b in summary.split("\n") if b.strip()]
+        summary_html = "".join(f"<li>{b}</li>" for b in bullets if b)
+
+    # Tasks table rows
+    tasks_rows = ""
+    if tasks:
+        for t in tasks:
+            task_text = t.get("task", "")
+            owner     = t.get("owner", "Unassigned")
+            deadline  = t.get("deadline", "Not specified")
+            tasks_rows += f"""
+            <tr>
+              <td style="padding:10px 12px;border-bottom:1px solid #2C2C2C;color:#E0E0E0;">{task_text}</td>
+              <td style="padding:10px 12px;border-bottom:1px solid #2C2C2C;color:#64B5F6;">{owner}</td>
+              <td style="padding:10px 12px;border-bottom:1px solid #2C2C2C;color:#FFAB40;">{deadline}</td>
+            </tr>
+            """
+
+    # Transcript (truncate if very long)
+    transcript_short = transcript[:3000] + ("\n\n…[truncated]" if len(transcript) > 3000 else "")
+    transcript_html  = transcript_short.replace("\n", "<br>")
+
+    profile_line = " | ".join(filter(None, [designation, company]))
+
+    return f"""
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#121212;font-family:Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#121212;padding:32px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="background:#1E1E1E;border-radius:12px;overflow:hidden;">
+
+      <!-- Header -->
+      <tr><td style="background:#BB86FC;padding:24px 32px;">
+        <h1 style="margin:0;color:#000;font-size:22px;">🎙 Meeting Minutes</h1>
+        <p style="margin:6px 0 0;color:#1a1a1a;font-size:14px;">{meeting_date}</p>
+      </td></tr>
+
+      <!-- Greeting -->
+      <tr><td style="padding:24px 32px 0;">
+        <p style="margin:0;color:#E0E0E0;font-size:15px;">Hi <strong>{user_name}</strong>,</p>
+        {f'<p style="margin:4px 0 0;color:#9E9E9E;font-size:13px;">{profile_line}</p>' if profile_line else ''}
+        <p style="margin:12px 0 0;color:#9E9E9E;font-size:14px;">Here are the minutes from your meeting. Review the summary, action items, and full transcript below.</p>
+      </td></tr>
+
+      <!-- Summary -->
+      {'<tr><td style="padding:24px 32px 0;"><h2 style="margin:0 0 12px;color:#03DAC6;font-size:14px;letter-spacing:1px;">📋 MEETING SUMMARY</h2><hr style="border:none;border-top:1px solid #2C2C2C;margin-bottom:12px;"><ul style="margin:0;padding-left:20px;color:#E0E0E0;line-height:1.8;font-size:14px;">' + summary_html + '</ul></td></tr>' if summary_html else ''}
+
+      <!-- Tasks -->
+      {'<tr><td style="padding:24px 32px 0;"><h2 style="margin:0 0 12px;color:#4CAF7D;font-size:14px;letter-spacing:1px;">✅ ACTION ITEMS</h2><hr style="border:none;border-top:1px solid #2C2C2C;margin-bottom:0;"><table width="100%" cellpadding="0" cellspacing="0"><tr style="background:#252525;"><th style="padding:10px 12px;text-align:left;color:#9E9E9E;font-size:12px;">Task</th><th style="padding:10px 12px;text-align:left;color:#9E9E9E;font-size:12px;">Owner</th><th style="padding:10px 12px;text-align:left;color:#9E9E9E;font-size:12px;">Deadline</th></tr>' + tasks_rows + '</table></td></tr>' if tasks_rows else ''}
+
+      <!-- Transcript -->
+      <tr><td style="padding:24px 32px;">
+        <h2 style="margin:0 0 12px;color:#BB86FC;font-size:14px;letter-spacing:1px;">📝 FULL TRANSCRIPT</h2>
+        <hr style="border:none;border-top:1px solid #2C2C2C;margin-bottom:12px;">
+        <p style="margin:0;color:#9E9E9E;font-size:13px;line-height:1.6;">{transcript_html}</p>
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style="background:#121212;padding:20px 32px;text-align:center;">
+        <p style="margin:0;color:#616161;font-size:11px;">Sent by Anti Gravity AI Meeting Recorder</p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body></html>
+    """
 
 
 @app.post("/upload-audio")

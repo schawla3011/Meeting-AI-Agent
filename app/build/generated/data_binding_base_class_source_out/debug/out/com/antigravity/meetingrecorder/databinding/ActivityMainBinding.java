@@ -39,10 +39,22 @@ public final class ActivityMainBinding implements ViewBinding {
   public final LinearLayout statusPill;
 
   @NonNull
+  public final LinearLayout summaryCard;
+
+  @NonNull
+  public final LinearLayout tasksCard;
+
+  @NonNull
+  public final LinearLayout tasksContainer;
+
+  @NonNull
   public final LinearLayout transcriptCard;
 
   @NonNull
   public final TextView tvStatus;
+
+  @NonNull
+  public final TextView tvSummary;
 
   @NonNull
   public final TextView tvTimer;
@@ -59,7 +71,9 @@ public final class ActivityMainBinding implements ViewBinding {
   private ActivityMainBinding(@NonNull ScrollView rootView, @NonNull TextView btnSettings,
       @NonNull Button btnStartMeeting, @NonNull Button btnStopMeeting,
       @NonNull ImageView ivStatusDot, @NonNull LinearLayout statusPill,
-      @NonNull LinearLayout transcriptCard, @NonNull TextView tvStatus, @NonNull TextView tvTimer,
+      @NonNull LinearLayout summaryCard, @NonNull LinearLayout tasksCard,
+      @NonNull LinearLayout tasksContainer, @NonNull LinearLayout transcriptCard,
+      @NonNull TextView tvStatus, @NonNull TextView tvSummary, @NonNull TextView tvTimer,
       @NonNull TextView tvTranscript, @NonNull TextView tvUploadStatus,
       @NonNull ProgressBar uploadProgressBar) {
     this.rootView = rootView;
@@ -68,8 +82,12 @@ public final class ActivityMainBinding implements ViewBinding {
     this.btnStopMeeting = btnStopMeeting;
     this.ivStatusDot = ivStatusDot;
     this.statusPill = statusPill;
+    this.summaryCard = summaryCard;
+    this.tasksCard = tasksCard;
+    this.tasksContainer = tasksContainer;
     this.transcriptCard = transcriptCard;
     this.tvStatus = tvStatus;
+    this.tvSummary = tvSummary;
     this.tvTimer = tvTimer;
     this.tvTranscript = tvTranscript;
     this.tvUploadStatus = tvUploadStatus;
@@ -133,6 +151,24 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.summary_card;
+      LinearLayout summaryCard = ViewBindings.findChildViewById(rootView, id);
+      if (summaryCard == null) {
+        break missingId;
+      }
+
+      id = R.id.tasks_card;
+      LinearLayout tasksCard = ViewBindings.findChildViewById(rootView, id);
+      if (tasksCard == null) {
+        break missingId;
+      }
+
+      id = R.id.tasks_container;
+      LinearLayout tasksContainer = ViewBindings.findChildViewById(rootView, id);
+      if (tasksContainer == null) {
+        break missingId;
+      }
+
       id = R.id.transcript_card;
       LinearLayout transcriptCard = ViewBindings.findChildViewById(rootView, id);
       if (transcriptCard == null) {
@@ -142,6 +178,12 @@ public final class ActivityMainBinding implements ViewBinding {
       id = R.id.tv_status;
       TextView tvStatus = ViewBindings.findChildViewById(rootView, id);
       if (tvStatus == null) {
+        break missingId;
+      }
+
+      id = R.id.tv_summary;
+      TextView tvSummary = ViewBindings.findChildViewById(rootView, id);
+      if (tvSummary == null) {
         break missingId;
       }
 
@@ -170,8 +212,9 @@ public final class ActivityMainBinding implements ViewBinding {
       }
 
       return new ActivityMainBinding((ScrollView) rootView, btnSettings, btnStartMeeting,
-          btnStopMeeting, ivStatusDot, statusPill, transcriptCard, tvStatus, tvTimer, tvTranscript,
-          tvUploadStatus, uploadProgressBar);
+          btnStopMeeting, ivStatusDot, statusPill, summaryCard, tasksCard, tasksContainer,
+          transcriptCard, tvStatus, tvSummary, tvTimer, tvTranscript, tvUploadStatus,
+          uploadProgressBar);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

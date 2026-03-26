@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "758734005688",
+    "project_id": "ai-meeting-mom",
+    "storage_bucket": "ai-meeting-mom.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:758734005688:android:8f9b8b8d3636235e485b4d",
+        "android_client_info": {
+          "package_name": "com.antigravity.meetingrecorder"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "758734005688-4664d3mn575nfr19a3l617ij1grce30i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACc7Y6Q9TL2Sb56EZM4naao-dISJyhatA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "758734005688-4664d3mn575nfr19a3l617ij1grce30i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

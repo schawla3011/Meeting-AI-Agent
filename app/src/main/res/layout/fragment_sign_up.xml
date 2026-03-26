@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Create your profile 🚀"
+            android:textColor="@color/white"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- Full Name -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Full Name *" android:textColor="@color/text_secondary" android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+        <EditText android:id="@+id/et_name" android:layout_width="match_parent" android:layout_height="52dp"
+            android:layout_marginBottom="16dp" android:background="@color/surface_elevated"
+            android:inputType="textPersonName" android:padding="12dp" android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint" android:hint="John Smith" />
+
+        <!-- Email -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Email *" android:textColor="@color/text_secondary" android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+        <EditText android:id="@+id/et_signup_email" android:layout_width="match_parent" android:layout_height="52dp"
+            android:layout_marginBottom="16dp" android:background="@color/surface_elevated"
+            android:inputType="textEmailAddress" android:padding="12dp" android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint" android:hint="you@company.com" />
+
+        <!-- Password -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Password * (min 6 chars)" android:textColor="@color/text_secondary" android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+        <EditText android:id="@+id/et_signup_password" android:layout_width="match_parent" android:layout_height="52dp"
+            android:layout_marginBottom="16dp" android:background="@color/surface_elevated"
+            android:inputType="textPassword" android:padding="12dp" android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint" android:hint="••••••••" />
+
+        <!-- Company -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Company" android:textColor="@color/text_secondary" android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+        <EditText android:id="@+id/et_company" android:layout_width="match_parent" android:layout_height="52dp"
+            android:layout_marginBottom="16dp" android:background="@color/surface_elevated"
+            android:inputType="textCapWords" android:padding="12dp" android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint" android:hint="Acme Corp" />
+
+        <!-- Industry -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Industry" android:textColor="@color/text_secondary" android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+        <EditText android:id="@+id/et_industry" android:layout_width="match_parent" android:layout_height="52dp"
+            android:layout_marginBottom="16dp" android:background="@color/surface_elevated"
+            android:inputType="textCapWords" android:padding="12dp" android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint" android:hint="Technology / Finance / Healthcare…" />
+
+        <!-- Designation -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Designation" android:textColor="@color/text_secondary" android:textSize="12sp"
+            android:layout_marginBottom="6dp"/>
+        <EditText android:id="@+id/et_designation" android:layout_width="match_parent" android:layout_height="52dp"
+            android:layout_marginBottom="28dp" android:background="@color/surface_elevated"
+            android:inputType="textCapWords" android:padding="12dp" android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint" android:hint="Product Manager / CEO / Engineer…" />
+
+        <ProgressBar
+            android:id="@+id/signup_progress"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal" android:layout_marginBottom="12dp"
+            android:indeterminateTint="@color/primary" android:visibility="gone" />
+
+        <Button android:id="@+id/btn_signup" android:layout_width="match_parent" android:layout_height="52dp"
+            android:backgroundTint="@color/secondary" android:text="Create Account"
+            android:textColor="@color/black" android:textSize="16sp" android:textStyle="bold" />
+
+    </LinearLayout>
+</ScrollView>
