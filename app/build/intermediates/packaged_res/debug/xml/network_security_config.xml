@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Config — Development Build
+    Allows cleartext (plain HTTP) traffic to ALL hosts so the app can
+    reach the FastAPI backend on any local IP address.
+
+    NOTE: <domain> tags in Android security config do NOT match IP addresses
+    by subnet — only exact hostnames. Using <base-config> is the correct
+    approach for any local-dev server reachable by IP.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Config
+
+    HTTPS (e.g. https://your-app.onrender.com) is always allowed — no rules needed.
+
+    Cleartext HTTP is allowed ONLY for local development IPs:
+      - 10.0.2.2       → Android Emulator host loopback
+      - 10.0.x.x       → Common LAN range
+      - 192.168.x.x    → Home/office WiFi LAN range
+      - 172.16-31.x.x  → RFC-1918 LAN range
+
+    When using the cloud backend, no special config is needed here.
+    When testing locally, set the server URL in the app's ⚙ Settings dialog.
+-->
+<network-security-config>
+    <!-- HTTPS always works; only restrict cleartext to local IPs -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Allow plain HTTP for local dev server only -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Android Emulator → host Mac -->
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <!-- Common RFC-1918 LAN ranges (exact IPs shown; add yours if needed) -->
+        <domain includeSubdomains="false">192.168.1.1</domain>
+        <domain includeSubdomains="false">192.168.0.1</domain>
+        <!-- Localhost for emulator -->
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

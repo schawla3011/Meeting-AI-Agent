@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_dark">#121212</color>
+    <color name="black">#FF000000</color>
+    <color name="primary">#BB86FC</color>
+    <color name="primary_variant">#3700B3</color>
+    <color name="secondary">#03DAC6</color>
+    <color name="status_grey">#757575</color>
+    <color name="status_red">#CF6679</color>
+    <color name="surface_dark">#1E1E1E</color>
+    <color name="text_primary">#E0E0E0</color>
+    <color name="text_secondary">#9E9E9E</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="app_name">Meeting Recorder</string>
+    <string name="btn_start">Start Meeting</string>
+    <string name="btn_stop">Stop Meeting</string>
+    <string name="status_idle">Not Recording</string>
+    <string name="status_recording">Recording</string>
+    <string name="status_uploading">Uploading…</string>
+    <string name="transcript_empty">No transcript available.\n(Check OPENAI_API_KEY in backend/.env)</string>
+    <string name="transcript_title">📝 MEETING TRANSCRIPT</string>
+    <string name="upload_error">❌ Upload failed: %1$s</string>
+    <string name="upload_network_error">📡 Network error: %1$s</string>
+    <string name="upload_success">✅ Uploaded: %1$s (%2$.1f KB)</string>
+    <string name="upload_uploading">⬆️ Uploading &amp; transcribing…</string>
+    <style name="Theme.MeetingRecorder" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_variant</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorSecondaryVariant">@color/secondary</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+</resources>

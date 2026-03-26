@@ -1,0 +1,46 @@
+[
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/drawable_bg_status_idle.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/drawable/bg_status_idle.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/drawable_bg_status_recording.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/drawable/bg_status_recording.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/drawable_shape_dot_recording.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/drawable/shape_dot_recording.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/xml_data_extraction_rules.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/layout_activity_main.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/xml_network_security_config.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/xml/network_security_config.xml"
+    },
+    {
+        "merged": "com.antigravity.meetingrecorder.app-merged_res-33:/layout_activity_main.xml.flat",
+        "source": "com.antigravity.meetingrecorder.app-main-35:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/xml_backup_rules.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-merged_res-33:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/drawable/ic_launcher_foreground.xml"
+    }
+]

@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Meeting Recorder</string>
+    <string name="status_idle">Not Recording</string>
+    <string name="status_recording">Recording</string>
+    <string name="status_uploading">Uploading…</string>
+    <string name="btn_start">Start Meeting</string>
+    <string name="btn_stop">Stop Meeting</string>
+
+    <!-- Upload messages -->
+    <string name="upload_uploading">⬆️ Uploading &amp; transcribing…</string>
+    <string name="upload_success">✅ Uploaded: %1$s (%2$.1f KB)</string>
+    <string name="upload_error">❌ Upload failed: %1$s</string>
+    <string name="upload_network_error">📡 Network error: %1$s</string>
+
+    <!-- Transcript -->
+    <string name="transcript_title">📝 MEETING TRANSCRIPT</string>
+    <string name="transcript_empty">No transcript available.\n(Check OPENAI_API_KEY in backend/.env)</string>
+</resources>

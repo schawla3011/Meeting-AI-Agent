@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.antigravity.meetingrecorder.app-mergeDebugResources-32:/layout/activity_main.xml",
+        "source": "com.antigravity.meetingrecorder.app-main-35:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-mergeDebugResources-32:/layout/activity_main.xml",
+        "source": "/Users/shivamchawla/.gradle/daemon/8.4/com.antigravity.meetingrecorder.app-main-35:/layout/activity_main.xml"
+    }
+]
