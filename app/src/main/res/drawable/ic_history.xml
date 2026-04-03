@@ -36,11 +36,9 @@
         android:strokeLineCap="round"
         android:pathData="M12,12 L12,8" />
 
-    <!-- Center dot -->
-    <circle
+    <!-- Center dot (drawn as a path since <circle> is not valid in VectorDrawable) -->
+    <path
         android:fillColor="@color/text_secondary"
-        android:cx="12"
-        android:cy="12"
-        android:r="1" />
+        android:pathData="M12,11 A1,1 0 1,0 12,13 A1,1 0 1,0 12,11 Z" />
 
 </vector>
