@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Anticlockwise circular arrow (history) -->
+    <!-- Outer arc going counter-clockwise from ~30° to ~300° -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@color/text_secondary"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,3 A9,9 0 1,0 4.22,7.5" />
+
+    <!-- Arrowhead for anticlockwise direction (at ~210° position) -->
+    <path
+        android:fillColor="@color/text_secondary"
+        android:pathData="M4.22,7.5 L1.5,5.5 L4.5,4.5 Z" />
+
+    <!-- Clock hour hand (pointing roughly to 9 o'clock = 3 hours mark) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@color/text_secondary"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M12,12 L9,12" />
+
+    <!-- Clock minute hand (pointing roughly to 12 o'clock) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@color/text_secondary"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M12,12 L12,8" />
+
+    <!-- Center dot -->
+    <circle
+        android:fillColor="@color/text_secondary"
+        android:cx="12"
+        android:cy="12"
+        android:r="1" />
+
+</vector>

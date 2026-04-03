@@ -57,20 +57,21 @@
             </LinearLayout>
         </LinearLayout>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Pravah AI"
-            android:textColor="@color/primary"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.06" />
+
+        <ImageView
+            android:id="@+id/btn_history"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_history"
+            android:scaleType="fitCenter"
+            android:contentDescription="Meeting History" />
 
         <TextView
             android:id="@+id/btn_settings"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="12dp"
             android:gravity="center"
             android:text="⚙"
             android:textColor="@color/text_secondary"

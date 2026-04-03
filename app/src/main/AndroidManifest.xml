@@ -63,6 +63,24 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.MeetingRecorder.NoActionBar" />
 
+        <activity
+            android:name=".ProfileActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.MeetingRecorder.NoActionBar" />
+
+        <activity
+            android:name=".MeetingHistoryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.MeetingRecorder.NoActionBar" />
+
+        <activity
+            android:name=".MeetingDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.MeetingRecorder.NoActionBar" />
+
         <service
             android:name=".RecordingService"
             android:exported="false"

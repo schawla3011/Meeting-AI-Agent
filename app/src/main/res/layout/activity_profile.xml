@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_screen_gradient"
+    android:orientation="vertical">
+
+    <!-- Top bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="@drawable/bg_gradient_header"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btn_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:text="←"
+            android:textColor="@color/white"
+            android:textSize="22sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Edit Profile"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_record_button"
+            android:paddingHorizontal="18dp"
+            android:paddingVertical="8dp"
+            android:text="Save"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <!-- Avatar / initials circle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_marginBottom="28dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_profile_avatar"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_avatar"
+                    android:gravity="center"
+                    android:textColor="@color/white"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_profile_email_display"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Name -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Full Name *" android:textColor="@color/text_secondary"
+                android:textSize="12sp" android:textStyle="bold" android:letterSpacing="0.04"
+                android:layout_marginBottom="8dp" />
+            <EditText android:id="@+id/et_profile_name" android:layout_width="match_parent"
+                android:layout_height="56dp" android:layout_marginBottom="20dp"
+                android:background="@drawable/bg_email_banner" android:inputType="textPersonName"
+                android:paddingHorizontal="16dp" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:hint="Your full name" />
+
+            <!-- Company -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Company" android:textColor="@color/text_secondary"
+                android:textSize="12sp" android:textStyle="bold" android:letterSpacing="0.04"
+                android:layout_marginBottom="8dp" />
+            <EditText android:id="@+id/et_profile_company" android:layout_width="match_parent"
+                android:layout_height="56dp" android:layout_marginBottom="20dp"
+                android:background="@drawable/bg_email_banner" android:inputType="textCapWords"
+                android:paddingHorizontal="16dp" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:hint="Acme Corp (optional)" />
+
+            <!-- Industry -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Industry" android:textColor="@color/text_secondary"
+                android:textSize="12sp" android:textStyle="bold" android:letterSpacing="0.04"
+                android:layout_marginBottom="8dp" />
+            <EditText android:id="@+id/et_profile_industry" android:layout_width="match_parent"
+                android:layout_height="56dp" android:layout_marginBottom="20dp"
+                android:background="@drawable/bg_email_banner" android:inputType="textCapWords"
+                android:paddingHorizontal="16dp" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:hint="Technology / Finance… (optional)" />
+
+            <!-- Designation -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Designation" android:textColor="@color/text_secondary"
+                android:textSize="12sp" android:textStyle="bold" android:letterSpacing="0.04"
+                android:layout_marginBottom="8dp" />
+            <EditText android:id="@+id/et_profile_designation" android:layout_width="match_parent"
+                android:layout_height="56dp" android:layout_marginBottom="32dp"
+                android:background="@drawable/bg_email_banner" android:inputType="textCapWords"
+                android:paddingHorizontal="16dp" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:hint="Product Manager / CEO… (optional)" />
+
+            <ProgressBar android:id="@+id/profile_progress"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal" android:layout_marginBottom="12dp"
+                android:indeterminateTint="@color/primary" android:visibility="gone" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

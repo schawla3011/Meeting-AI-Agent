@@ -19,7 +19,6 @@ import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
-import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -126,6 +125,7 @@ class MainActivity : AppCompatActivity() {
                     showTranscript(transcript)
                     updateUi(recording = false, uploading = false)
                     addTasksToCalendarSilently(analysisJson)
+                    saveMeetingToRoom(filename, transcript, analysisJson)
                     sendMomEmail(transcript, analysisJson)
                 }
                 RecordingService.ACTION_UPLOAD_FAILURE -> {
@@ -159,6 +159,11 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
             if (results[android.Manifest.permission.WRITE_CALENDAR] == true)
                 showToast("📅 Calendar access granted — tasks will be added automatically")
+        }
+
+    private val profileLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) loadUserProfile() // refresh header
         }
 
     // ------------------------------------------------------------------
@@ -236,7 +241,8 @@ class MainActivity : AppCompatActivity() {
             else permissionLauncher.launch(PermissionHelper.requiredPermissions())
         }
         binding.btnStopMeeting.setOnClickListener { stopRecording() }
-        binding.btnSettings.setOnClickListener    { showServerUrlDialog() }
+        binding.btnHistory.setOnClickListener     { startActivity(Intent(this, MeetingHistoryActivity::class.java)) }
+        binding.btnSettings.setOnClickListener    { showSettingsDialog() }
         binding.btnLogout.setOnClickListener      { confirmLogout() }
 
         // Tab chips
@@ -680,38 +686,44 @@ class MainActivity : AppCompatActivity() {
     private fun showToast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 
     // ------------------------------------------------------------------
-    // Server URL dialog
+    // Save meeting locally
     // ------------------------------------------------------------------
-    private fun showServerUrlDialog() {
-        val input = EditText(this).apply {
-            setText(ServerConfig.getBaseUrl(this@MainActivity))
-            setTextColor(0xFFE0E0E0.toInt())
-            hint = "https://your-app.onrender.com"
-            setSingleLine()
-            val p = (16 * resources.displayMetrics.density).toInt()
-            setPadding(p, p, p, p)
+    private fun saveMeetingToRoom(filename: String, transcript: String, analysisJson: String) {
+        val date  = SimpleDateFormat("dd MMM yyyy, h:mm a", Locale.getDefault()).format(Date())
+        var summary = ""
+        var tasksJson = "[]"
+        if (analysisJson.isNotBlank()) {
+            try {
+                val obj = JSONObject(analysisJson)
+                summary   = obj.optString("summary", "")
+                tasksJson = (obj.optJSONArray("tasks") ?: JSONArray()).toString()
+            } catch (_: Exception) {}
         }
-        val wrap = LinearLayout(this).apply {
-            val p = (8 * resources.displayMetrics.density).toInt()
-            setPadding(p * 3, p, p * 3, p)
-            addView(input)
+        val meeting = Meeting(
+            date         = date,
+            filename     = filename,
+            summary      = summary,
+            tasksJson    = tasksJson,
+            transcript   = transcript
+        )
+        CoroutineScope(Dispatchers.IO).launch {
+            MeetingDatabase.getInstance(applicationContext).meetingDao().insert(meeting)
+            Log.i("MainActivity", "Meeting saved to local DB: $filename")
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Settings dialog — Profile only (server URL is managed via app updates)
+    // ------------------------------------------------------------------
+    private fun showSettingsDialog() {
         AlertDialog.Builder(this)
-            .setTitle("Pravah AI – Server URL")
-            .setMessage(
-                "Cloud: https://meeting-ai-agent-6emk.onrender.com\n" +
-                "Emulator: http://10.0.2.2:8000"
-            )
-            .setView(wrap)
-            .setPositiveButton("Save") { _, _ ->
-                val saved = ServerConfig.saveBaseUrl(this, input.text.toString().trim())
-                showToast("Saved: $saved")
-            }
-            .setNegativeButton("Cancel", null)
-            .setNeutralButton("Reset") { _, _ ->
-                ServerConfig.saveBaseUrl(this, ServerConfig.DEFAULT_URL)
-                showToast("Reset to ${ServerConfig.DEFAULT_URL}")
+            .setTitle("Settings")
+            .setItems(arrayOf("👤  Edit My Profile")) { _, which ->
+                when (which) {
+                    0 -> profileLauncher.launch(Intent(this, ProfileActivity::class.java))
+                }
             }
             .show()
     }
+
 }

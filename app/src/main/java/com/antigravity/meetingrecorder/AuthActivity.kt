@@ -5,8 +5,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -46,15 +48,17 @@ class AuthActivity : AppCompatActivity() {
             if (position == 0) SignInFragment() else SignUpFragment()
     }
 
-    // -------------------------------------------------------------------------
+    // ──────────────────────────────────────────────────────────────────────────
+    // Sign In
+    // ──────────────────────────────────────────────────────────────────────────
 
     class SignInFragment : Fragment() {
 
-        private lateinit var etEmail: EditText
+        private lateinit var etEmail:    EditText
         private lateinit var etPassword: EditText
-        private lateinit var btnSignIn: Button
-        private lateinit var tvForgot: TextView
-        private lateinit var progress: ProgressBar
+        private lateinit var btnSignIn:  Button
+        private lateinit var tvForgot:   TextView
+        private lateinit var progress:   ProgressBar
 
         override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
             inflater.inflate(R.layout.fragment_sign_in, container, false)
@@ -73,7 +77,8 @@ class AuthActivity : AppCompatActivity() {
         private fun attemptSignIn() {
             val email    = etEmail.text.toString().trim()
             val password = etPassword.text.toString()
-            if (!validate(email, password)) return
+            if (email.isBlank())    { etEmail.error    = "Required"; return }
+            if (password.isBlank()) { etPassword.error = "Required"; return }
 
             setLoading(true)
             CoroutineScope(Dispatchers.IO).launch {
@@ -100,12 +105,6 @@ class AuthActivity : AppCompatActivity() {
                 .addOnFailureListener { toast("Error: ${it.message}") }
         }
 
-        private fun validate(email: String, password: String): Boolean {
-            if (email.isBlank())    { etEmail.error    = "Required"; return false }
-            if (password.isBlank()) { etPassword.error = "Required"; return false }
-            return true
-        }
-
         private fun setLoading(on: Boolean) {
             progress.visibility = if (on) View.VISIBLE else View.GONE
             btnSignIn.isEnabled = !on
@@ -114,61 +113,92 @@ class AuthActivity : AppCompatActivity() {
         private fun toast(msg: String) = Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
     }
 
-    // -------------------------------------------------------------------------
+    // ──────────────────────────────────────────────────────────────────────────
+    // Sign Up — 2-step flow
+    // ──────────────────────────────────────────────────────────────────────────
 
     class SignUpFragment : Fragment() {
 
-        private lateinit var etName: EditText
-        private lateinit var etEmail: EditText
-        private lateinit var etPassword: EditText
-        private lateinit var etCompany: EditText
-        private lateinit var etIndustry: EditText
-        private lateinit var etDesignation: EditText
-        private lateinit var btnSignUp: Button
-        private lateinit var progress: ProgressBar
+        // Step 1
+        private lateinit var step1Container: LinearLayout
+        private lateinit var etName:         EditText
+        private lateinit var etEmail:        EditText
+        private lateinit var etPassword:     EditText
+        private lateinit var btnContinue:    Button
+        private lateinit var progress:       ProgressBar
+        private lateinit var tvStepIndicator: TextView
+        private lateinit var tvStepTitle:    TextView
+        private lateinit var tvStepSubtitle: TextView
+
+        // Step 2
+        private lateinit var step2Container: LinearLayout
+        private lateinit var etCompany:      EditText
+        private lateinit var etIndustry:     EditText
+        private lateinit var etDesignation:  EditText
+        private lateinit var btnSignUp:      Button
+        private lateinit var btnSkip:        TextView
+
+        // State from Step 1 (after Firebase account created)
+        private var createdUid   = ""
+        private var createdEmail = ""
+        private var createdName  = ""
 
         override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
             inflater.inflate(R.layout.fragment_sign_up, container, false)
 
         override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-            etName        = view.findViewById(R.id.et_name)
-            etEmail       = view.findViewById(R.id.et_signup_email)
-            etPassword    = view.findViewById(R.id.et_signup_password)
-            etCompany     = view.findViewById(R.id.et_company)
-            etIndustry    = view.findViewById(R.id.et_industry)
-            etDesignation = view.findViewById(R.id.et_designation)
-            btnSignUp     = view.findViewById(R.id.btn_signup)
-            progress      = view.findViewById(R.id.signup_progress)
+            step1Container  = view.findViewById(R.id.step1_container)
+            step2Container  = view.findViewById(R.id.step2_container)
+            etName          = view.findViewById(R.id.et_name)
+            etEmail         = view.findViewById(R.id.et_signup_email)
+            etPassword      = view.findViewById(R.id.et_signup_password)
+            btnContinue     = view.findViewById(R.id.btn_continue)
+            progress        = view.findViewById(R.id.signup_progress)
+            tvStepIndicator = view.findViewById(R.id.tv_step_indicator)
+            tvStepTitle     = view.findViewById(R.id.tv_step_title)
+            tvStepSubtitle  = view.findViewById(R.id.tv_step_subtitle)
+            etCompany       = view.findViewById(R.id.et_company)
+            etIndustry      = view.findViewById(R.id.et_industry)
+            etDesignation   = view.findViewById(R.id.et_designation)
+            btnSignUp       = view.findViewById(R.id.btn_signup)
+            btnSkip         = view.findViewById(R.id.btn_skip)
 
-            btnSignUp.setOnClickListener { attemptSignUp() }
+            btnContinue.setOnClickListener { attemptStep1() }
+            btnSignUp.setOnClickListener   { saveStep2AndFinish() }
+            btnSkip.setOnClickListener     { goToMain() }
         }
 
-        private fun attemptSignUp() {
-            val name        = etName.text.toString().trim()
-            val email       = etEmail.text.toString().trim()
-            val password    = etPassword.text.toString()
-            val company     = etCompany.text.toString().trim()
-            val industry    = etIndustry.text.toString().trim()
-            val designation = etDesignation.text.toString().trim()
+        // ── Step 1: Create Firebase account, save minimal profile ──────────────
+        private fun attemptStep1() {
+            val name     = etName.text.toString().trim()
+            val email    = etEmail.text.toString().trim()
+            val password = etPassword.text.toString()
 
-            if (!validate(name, email, password)) return
+            if (name.isBlank())          { etName.error     = "Required"; return }
+            if (email.isBlank())         { etEmail.error    = "Required"; return }
+            if (password.length < 6)     { etPassword.error = "Min 6 characters"; return }
+
             setLoading(true)
-
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val result = FirebaseAuth.getInstance()
                         .createUserWithEmailAndPassword(email, password).await()
 
-                    val uid     = result.user!!.uid
-                    val profile = UserProfile(uid, name, email, company, industry, designation)
-
+                    val uid = result.user!!.uid
+                    // Save minimal profile (name + email only)
+                    val profile = UserProfile(uid = uid, name = name, email = email)
                     FirebaseFirestore.getInstance()
                         .collection("users").document(uid)
                         .set(profile).await()
 
+                    // Save for Step 2
+                    createdUid   = uid
+                    createdEmail = email
+                    createdName  = name
+
                     withContext(Dispatchers.Main) {
-                        startActivity(Intent(requireContext(), MainActivity::class.java))
-                        requireActivity().finish()
+                        setLoading(false)
+                        showStep2()
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
@@ -179,16 +209,47 @@ class AuthActivity : AppCompatActivity() {
             }
         }
 
-        private fun validate(name: String, email: String, password: String): Boolean {
-            if (name.isBlank())     { etName.error     = "Required"; return false }
-            if (email.isBlank())    { etEmail.error    = "Required"; return false }
-            if (password.length < 6){ etPassword.error = "Min 6 chars"; return false }
-            return true
+        // ── Step 2: Save optional fields ───────────────────────────────────────
+        private fun saveStep2AndFinish() {
+            val company     = etCompany.text.toString().trim()
+            val industry    = etIndustry.text.toString().trim()
+            val designation = etDesignation.text.toString().trim()
+
+            if (createdUid.isBlank()) { goToMain(); return }
+
+            setLoading(true)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val updatedProfile = UserProfile(
+                        uid = createdUid, name = createdName, email = createdEmail,
+                        company = company, industry = industry, designation = designation
+                    )
+                    FirebaseFirestore.getInstance()
+                        .collection("users").document(createdUid)
+                        .set(updatedProfile).await()
+                } catch (_: Exception) { /* optional — ignore failures */ }
+
+                withContext(Dispatchers.Main) { goToMain() }
+            }
+        }
+
+        private fun goToMain() {
+            startActivity(Intent(requireContext(), MainActivity::class.java))
+            requireActivity().finish()
+        }
+
+        private fun showStep2() {
+            step1Container.visibility = View.GONE
+            step2Container.visibility = View.VISIBLE
+            tvStepIndicator.text = "Step 2 of 2"
+            tvStepTitle.text     = "Complete your profile ✨"
+            tvStepSubtitle.text  = "All fields are optional — you can fill them anytime from your profile"
         }
 
         private fun setLoading(on: Boolean) {
-            progress.visibility = if (on) View.VISIBLE else View.GONE
-            btnSignUp.isEnabled = !on
+            progress.visibility     = if (on) View.VISIBLE else View.GONE
+            btnContinue.isEnabled   = !on
+            btnSignUp.isEnabled     = !on
         }
 
         private fun toast(msg: String) = Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
