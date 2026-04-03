@@ -6,16 +6,10 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 
-/**
- * Utility helpers for runtime permission checks.
- */
 object PermissionHelper {
 
-    /** All permissions the app needs at runtime. */
     fun requiredPermissions(): Array<String> = buildList {
         add(Manifest.permission.RECORD_AUDIO)
-        // WRITE_EXTERNAL_STORAGE only needed on Android 8 & 9 (API 26-28)
-        // for saving to the public Music folder
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
@@ -24,25 +18,21 @@ object PermissionHelper {
         }
     }.toTypedArray()
 
-    /** Returns true only when every required permission is granted. */
+    fun calendarPermissions(): Array<String> = arrayOf(
+        Manifest.permission.READ_CALENDAR,
+        Manifest.permission.WRITE_CALENDAR
+    )
+
     fun allGranted(context: Context): Boolean =
-        requiredPermissions().all { permission ->
-            ContextCompat.checkSelfPermission(context, permission) ==
-                    PackageManager.PERMISSION_GRANTED
+        requiredPermissions().all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
         }
 
-    /** Returns true when microphone permission specifically is granted. */
+    fun calendarGranted(context: Context): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) ==
+                PackageManager.PERMISSION_GRANTED
+
     fun micGranted(context: Context): Boolean =
-        ContextCompat.checkSelfPermission(
-            context, Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED
-
-    /** Maps a result array back to denied permission names. */
-    fun deniedPermissions(
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ): List<String> =
-        permissions.filterIndexed { index, _ ->
-            grantResults[index] != PackageManager.PERMISSION_GRANTED
-        }
+        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
 }

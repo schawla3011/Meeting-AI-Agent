@@ -2,37 +2,43 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_dark"
+    android:background="@drawable/bg_screen_gradient"
     android:gravity="center"
     android:orientation="vertical">
 
-    <!-- Pulsing logo ring -->
+    <!-- Mic ring glow -->
     <FrameLayout
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginBottom="32dp">
+        android:layout_width="128dp"
+        android:layout_height="128dp"
+        android:layout_marginBottom="28dp">
 
         <View
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:background="@drawable/bg_splash_ring"
-            android:alpha="0.3" />
+            android:layout_width="128dp"
+            android:layout_height="128dp"
+            android:alpha="0.25"
+            android:background="@drawable/bg_mic_ring" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="🎙"
-            android:textSize="52sp" />
+        <LinearLayout
+            android:layout_width="90dp"
+            android:layout_height="90dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_mic_ring_solid"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎙"
+                android:textSize="40sp" />
+        </LinearLayout>
     </FrameLayout>
 
-    <!-- App name -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Anti Gravity"
+        android:text="Pravah AI"
         android:textColor="@color/white"
-        android:textSize="32sp"
+        android:textSize="34sp"
         android:textStyle="bold"
         android:letterSpacing="0.03" />
 
@@ -40,9 +46,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="AI Meeting Recorder"
+        android:text="Meeting Recorder"
         android:textColor="@color/primary"
         android:textSize="15sp"
         android:letterSpacing="0.08" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Your AI meeting intelligence"
+        android:textColor="@color/text_hint"
+        android:textSize="12sp" />
 
 </LinearLayout>

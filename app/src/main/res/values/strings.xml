@@ -1,17 +1,17 @@
 <resources>
-    <string name="app_name">Meeting Recorder</string>
-    <string name="status_idle">Not Recording</string>
-    <string name="status_recording">Recording</string>
+    <string name="app_name">Pravah AI</string>
+    <string name="status_idle">Ready to Record</string>
+    <string name="status_recording">Recording…</string>
     <string name="status_uploading">Uploading…</string>
     <string name="btn_start">Start Meeting</string>
     <string name="btn_stop">Stop Meeting</string>
 
     <!-- Upload messages -->
-    <string name="upload_uploading">⬆️ Uploading audio…</string>
-    <string name="upload_transcribing">🔄 Analysing with Whisper + GPT… (may take up to 2 min)</string>
-    <string name="upload_success">✅ Uploaded: %1$s (%2$.1f KB)</string>
-    <string name="upload_error">❌ Upload failed: %1$s</string>
-    <string name="upload_network_error">📡 Network error: %1$s</string>
+    <string name="upload_uploading">Uploading audio to Pravah AI…</string>
+    <string name="upload_transcribing">Analysing with Whisper + GPT… (may take 1–2 min)</string>
+    <string name="upload_success">Uploaded: %1$s (%2$.1f KB)</string>
+    <string name="upload_error">Upload failed: %1$s</string>
+    <string name="upload_network_error">Network error: %1$s</string>
 
     <!-- Transcript -->
     <string name="transcript_title">📝 TRANSCRIPT</string>

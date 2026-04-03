@@ -1,5 +1,7 @@
 package com.antigravity.meetingrecorder
 
+import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
 import android.app.AlertDialog
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -21,6 +23,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.antigravity.meetingrecorder.databinding.ActivityMainBinding
@@ -29,7 +32,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -52,24 +54,28 @@ class MainActivity : AppCompatActivity() {
 
     private val auth = FirebaseAuth.getInstance()
     private val db   = FirebaseFirestore.getInstance()
-
     private val handler = Handler(Looper.getMainLooper())
+
+    private var micPulseAnimator: ObjectAnimator? = null
+
+    private enum class ResultTab { SUMMARY, TASKS, TRANSCRIPT }
 
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
     // ------------------------------------------------------------------
     // Service binding
     // ------------------------------------------------------------------
     private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: android.content.ComponentName?, binder: IBinder?) {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             recordingService = (binder as? RecordingService.LocalBinder)?.getService()
             serviceBound = true
             syncUiWithService()
         }
-        override fun onServiceDisconnected(name: android.content.ComponentName?) {
+        override fun onServiceDisconnected(name: ComponentName?) {
             recordingService = null
             serviceBound = false
         }
@@ -103,8 +109,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 RecordingService.ACTION_FILE_SAVED -> {
                     val name = intent.getStringExtra(RecordingService.EXTRA_FILE_NAME)
-                    showToast("✅ Saved: $name")
-                    showUploadStatus(getString(R.string.upload_uploading), isError = false)
+                    showToast("Saved: $name")
+                    showUploadStatus("Uploading audio to Pravah AI…", isError = false)
                 }
                 RecordingService.ACTION_UPLOAD_SUCCESS -> {
                     showUploadStatus(getString(R.string.upload_transcribing), isError = false)
@@ -115,12 +121,11 @@ class MainActivity : AppCompatActivity() {
                     val transcript   = intent.getStringExtra(RecordingService.EXTRA_UPLOAD_TRANSCRIPT) ?: ""
                     val analysisJson = intent.getStringExtra(RecordingService.EXTRA_UPLOAD_ANALYSIS) ?: ""
 
-                    showUploadStatus(getString(R.string.upload_success, filename, sizeKb), isError = false)
+                    showUploadStatus("Uploaded: $filename (${sizeKb.toInt()} KB)", isError = false)
                     showAnalysis(analysisJson)
                     showTranscript(transcript)
                     updateUi(recording = false, uploading = false)
-
-                    // Send MOM email in background
+                    addTasksToCalendarSilently(analysisJson)
                     sendMomEmail(transcript, analysisJson)
                 }
                 RecordingService.ACTION_UPLOAD_FAILURE -> {
@@ -134,7 +139,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 RecordingService.ACTION_ERROR -> {
                     val msg = intent.getStringExtra(RecordingService.EXTRA_ERROR_MESSAGE)
-                    showToast("⚠️ Error: $msg")
+                    showToast("Error: $msg")
                     updateUi(recording = false, uploading = false)
                 }
             }
@@ -142,22 +147,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ------------------------------------------------------------------
-    // Permission launcher
+    // Permission launchers
     // ------------------------------------------------------------------
     private val permissionLauncher =
-        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()) { results ->
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
             if (results[android.Manifest.permission.RECORD_AUDIO] == true) startRecording()
             else showToast("Microphone permission is required to record meetings.")
+        }
+
+    private val calendarPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+            if (results[android.Manifest.permission.WRITE_CALENDAR] == true)
+                showToast("📅 Calendar access granted — tasks will be added automatically")
         }
 
     // ------------------------------------------------------------------
     // Lifecycle
     // ------------------------------------------------------------------
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Guard: must be logged in
         if (auth.currentUser == null) {
             startActivity(Intent(this, AuthActivity::class.java))
             finish()
@@ -171,21 +180,31 @@ class MainActivity : AppCompatActivity() {
         setupClickListeners()
         registerStateReceiver()
         bindToService()
+        requestCalendarPermissionIfNeeded()
     }
 
-    override fun onResume()  { super.onResume();  syncUiWithService() }
+    override fun onResume()  { super.onResume(); syncUiWithService() }
 
     override fun onDestroy() {
         super.onDestroy()
+        micPulseAnimator?.cancel()
         unregisterReceiver(stateReceiver)
         if (serviceBound) { unbindService(serviceConnection); serviceBound = false }
         handler.removeCallbacksAndMessages(null)
     }
 
     // ------------------------------------------------------------------
+    // Calendar permission
+    // ------------------------------------------------------------------
+    private fun requestCalendarPermissionIfNeeded() {
+        if (!PermissionHelper.calendarGranted(this)) {
+            calendarPermissionLauncher.launch(PermissionHelper.calendarPermissions())
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Profile
     // ------------------------------------------------------------------
-
     private fun loadUserProfile() {
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid).get()
@@ -194,16 +213,13 @@ class MainActivity : AppCompatActivity() {
                 userProfile = profile
                 profile?.let { updateProfileHeader(it) }
             }
-            .addOnFailureListener {
-                Log.w("MainActivity", "Profile load failed: ${it.message}")
-            }
+            .addOnFailureListener { Log.w("MainActivity", "Profile load failed: ${it.message}") }
     }
 
     private fun updateProfileHeader(profile: UserProfile) {
         val initials = profile.name.split(" ")
             .take(2).joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
-
-        binding.tvAvatar.text          = initials.ifBlank { "?" }
+        binding.tvAvatar.text          = initials.ifBlank { "P" }
         binding.tvUserName.text        = profile.name.ifBlank { profile.email }
         binding.tvUserDesignation.text = listOfNotNull(
             profile.designation.ifBlank { null },
@@ -214,7 +230,6 @@ class MainActivity : AppCompatActivity() {
     // ------------------------------------------------------------------
     // Setup
     // ------------------------------------------------------------------
-
     private fun setupClickListeners() {
         binding.btnStartMeeting.setOnClickListener {
             if (PermissionHelper.allGranted(this)) startRecording()
@@ -223,6 +238,11 @@ class MainActivity : AppCompatActivity() {
         binding.btnStopMeeting.setOnClickListener { stopRecording() }
         binding.btnSettings.setOnClickListener    { showServerUrlDialog() }
         binding.btnLogout.setOnClickListener      { confirmLogout() }
+
+        // Tab chips
+        binding.chipSummary.setOnClickListener    { showResultsTab(ResultTab.SUMMARY) }
+        binding.chipTasks.setOnClickListener      { showResultsTab(ResultTab.TASKS) }
+        binding.chipTranscript.setOnClickListener { showResultsTab(ResultTab.TRANSCRIPT) }
     }
 
     private fun registerStateReceiver() {
@@ -248,7 +268,6 @@ class MainActivity : AppCompatActivity() {
     // ------------------------------------------------------------------
     // Recording control
     // ------------------------------------------------------------------
-
     private fun startRecording() {
         ContextCompat.startForegroundService(
             this,
@@ -271,7 +290,6 @@ class MainActivity : AppCompatActivity() {
     // ------------------------------------------------------------------
     // Logout
     // ------------------------------------------------------------------
-
     private fun confirmLogout() {
         AlertDialog.Builder(this)
             .setTitle("Sign Out")
@@ -286,9 +304,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ------------------------------------------------------------------
-    // UI helpers
+    // UI state
     // ------------------------------------------------------------------
-
     private fun syncUiWithService() {
         val service = recordingService
         when {
@@ -317,16 +334,18 @@ class MainActivity : AppCompatActivity() {
                 else      -> R.string.status_idle
             }
         )
-        binding.ivStatusDot.visibility  = if (recording) View.VISIBLE else View.INVISIBLE
+        binding.ivStatusDot.visibility       = if (recording) View.VISIBLE else View.INVISIBLE
         binding.uploadProgressBar.visibility = if (uploading) View.VISIBLE else View.GONE
 
         val canStart = !recording && !uploading
         binding.btnStartMeeting.isEnabled = canStart
         binding.btnStartMeeting.alpha     = if (canStart) 1f else 0.4f
         binding.btnStopMeeting.isEnabled  = recording
-        binding.btnStopMeeting.alpha      = if (recording) 1f else 0.4f
+        binding.btnStopMeeting.alpha      = if (recording) 1f else 0.45f
 
         if (!recording) binding.tvTimer.text = "00:00:00"
+
+        if (recording) startMicPulse() else stopMicPulse()
     }
 
     private fun showUploadStatus(message: String, isError: Boolean) {
@@ -338,13 +357,55 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ------------------------------------------------------------------
-    // Analysis display (Summary + Tasks)
+    // Mic pulse animation
     // ------------------------------------------------------------------
+    private fun startMicPulse() {
+        micPulseAnimator?.cancel()
+        micPulseAnimator = ObjectAnimator.ofPropertyValuesHolder(
+            binding.micPulseRing,
+            PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.6f),
+            PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.6f),
+            PropertyValuesHolder.ofFloat(View.ALPHA,  0.8f, 0f)
+        ).apply {
+            duration      = 1400
+            repeatCount   = ObjectAnimator.INFINITE
+            start()
+        }
+    }
 
+    private fun stopMicPulse() {
+        micPulseAnimator?.cancel()
+        micPulseAnimator = null
+        binding.micPulseRing.animate().alpha(0f).scaleX(1f).scaleY(1f).setDuration(300).start()
+    }
+
+    // ------------------------------------------------------------------
+    // Tab system
+    // ------------------------------------------------------------------
+    private fun showResultsTab(tab: ResultTab) {
+        val active   = getColor(R.color.white)
+        val inactive = getColor(R.color.text_secondary)
+
+        binding.chipSummary.isSelected    = (tab == ResultTab.SUMMARY)
+        binding.chipTasks.isSelected      = (tab == ResultTab.TASKS)
+        binding.chipTranscript.isSelected = (tab == ResultTab.TRANSCRIPT)
+
+        binding.chipSummary.setTextColor(   if (tab == ResultTab.SUMMARY)    active else inactive)
+        binding.chipTasks.setTextColor(     if (tab == ResultTab.TASKS)      active else inactive)
+        binding.chipTranscript.setTextColor(if (tab == ResultTab.TRANSCRIPT) active else inactive)
+
+        binding.summaryCard.visibility    = if (tab == ResultTab.SUMMARY)    View.VISIBLE else View.GONE
+        binding.tasksCard.visibility      = if (tab == ResultTab.TASKS)      View.VISIBLE else View.GONE
+        binding.transcriptCard.visibility = if (tab == ResultTab.TRANSCRIPT) View.VISIBLE else View.GONE
+    }
+
+    // ------------------------------------------------------------------
+    // Analysis display
+    // ------------------------------------------------------------------
     private fun showAnalysis(analysisJson: String) {
         if (analysisJson.isBlank()) {
-            binding.summaryCard.visibility = View.GONE
-            binding.tasksCard.visibility   = View.GONE
+            binding.resultsSection.visibility = View.VISIBLE
+            showResultsTab(ResultTab.TRANSCRIPT)
             return
         }
         try {
@@ -352,10 +413,7 @@ class MainActivity : AppCompatActivity() {
             val summary = obj.optString("summary", "").trim()
             val tasks   = obj.optJSONArray("tasks")
 
-            if (summary.isNotBlank()) {
-                binding.tvSummary.text        = summary
-                binding.summaryCard.visibility = View.VISIBLE
-            }
+            binding.tvSummary.text = summary.ifBlank { getString(R.string.summary_empty) }
 
             binding.tasksContainer.removeAllViews()
             if (tasks != null && tasks.length() > 0) {
@@ -368,16 +426,20 @@ class MainActivity : AppCompatActivity() {
                         isLast   = i == tasks.length() - 1
                     )
                 }
-                binding.tasksCard.visibility = View.VISIBLE
             }
+
+            binding.resultsSection.visibility = View.VISIBLE
+            showResultsTab(ResultTab.SUMMARY)
+
         } catch (e: Exception) {
             Log.e("MainActivity", "Analysis parse error", e)
+            binding.resultsSection.visibility = View.VISIBLE
+            showResultsTab(ResultTab.TRANSCRIPT)
         }
     }
 
     private fun addTaskRow(taskText: String, owner: String, deadline: String, isLast: Boolean) {
-        val dp = resources.displayMetrics.density
-
+        val dp  = resources.displayMetrics.density
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, (12 * dp).toInt(), 0, (12 * dp).toInt())
@@ -385,8 +447,8 @@ class MainActivity : AppCompatActivity() {
 
         // Task title
         row.addView(TextView(this).apply {
-            text      = taskText
-            textSize  = 14f
+            text     = taskText
+            textSize = 14f
             setTypeface(null, Typeface.BOLD)
             setTextColor(getColor(R.color.text_primary))
             layoutParams = LinearLayout.LayoutParams(
@@ -394,30 +456,32 @@ class MainActivity : AppCompatActivity() {
             ).also { it.bottomMargin = (6 * dp).toInt() }
         })
 
-        // Owner + deadline row
+        // Meta row
         val meta = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity     = Gravity.CENTER_VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { it.bottomMargin = (8 * dp).toInt() }
+            )
         }
 
+        // Owner chip
         meta.addView(TextView(this).apply {
-            text      = "👤 $owner"
-            textSize  = 11f
+            text     = "👤 $owner"
+            textSize = 11f
             setTextColor(getColor(R.color.owner_chip_text))
             setBackgroundColor(getColor(R.color.owner_chip_bg))
             setPadding((8 * dp).toInt(), (3 * dp).toInt(), (8 * dp).toInt(), (3 * dp).toInt())
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { it.marginEnd = (10 * dp).toInt() }
+            ).also { it.marginEnd = (8 * dp).toInt() }
         })
 
+        // Deadline
         if (deadline.isNotBlank() && !deadline.equals("not specified", ignoreCase = true)) {
             meta.addView(TextView(this).apply {
-                text      = "🗓 $deadline"
-                textSize  = 11f
+                text     = "🗓 $deadline"
+                textSize = 11f
                 setTextColor(getColor(R.color.deadline_text))
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
@@ -430,30 +494,38 @@ class MainActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
         })
 
-        // 📅 Add to Calendar button
-        val calBtn = Button(this).apply {
-            text      = "📅"
-            textSize  = 14f
-            setTextColor(getColor(R.color.primary))
-            background = null
-            contentDescription = "Add to calendar"
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            setOnClickListener {
-                CalendarHelper.addTaskToCalendar(this@MainActivity, taskText, owner, deadline)
-            }
+        // Calendar indicator or fallback button
+        if (PermissionHelper.calendarGranted(this)) {
+            meta.addView(TextView(this).apply {
+                text     = "📅 Scheduled"
+                textSize = 10f
+                setTextColor(getColor(R.color.accent_green))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            })
+        } else {
+            meta.addView(Button(this).apply {
+                text      = "📅"
+                textSize  = 14f
+                setTextColor(getColor(R.color.primary))
+                background = null
+                contentDescription = "Add to calendar"
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                setOnClickListener {
+                    CalendarHelper.addTaskToCalendar(this@MainActivity, taskText, owner, deadline)
+                }
+            })
         }
-        meta.addView(calBtn)
 
         row.addView(meta)
 
         if (!isLast) {
             row.addView(View(this).apply {
                 setBackgroundColor(getColor(R.color.divider))
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, 1
-                )
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
             })
         }
 
@@ -461,90 +533,142 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ------------------------------------------------------------------
+    // Auto-Calendar
+    // ------------------------------------------------------------------
+    private fun addTasksToCalendarSilently(analysisJson: String) {
+        if (!PermissionHelper.calendarGranted(this)) return
+        if (analysisJson.isBlank()) return
+        try {
+            val tasks = JSONObject(analysisJson).optJSONArray("tasks") ?: return
+            val list  = mutableListOf<Triple<String, String, String>>()
+            for (i in 0 until tasks.length()) {
+                val t = tasks.getJSONObject(i)
+                list.add(Triple(
+                    t.optString("task", ""),
+                    t.optString("owner", "Unassigned"),
+                    t.optString("deadline", "Not specified")
+                ))
+            }
+            val count = CalendarHelper.addAllTasksSilently(this, list)
+            if (count > 0) {
+                binding.tvCalendarText.text    = "📅 $count task${if (count == 1) "" else "s"} added to your calendar"
+                binding.calendarBanner.visibility = View.VISIBLE
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "addTasksToCalendarSilently error", e)
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Email MOM
     // ------------------------------------------------------------------
-
     private fun sendMomEmail(transcript: String, analysisJson: String) {
-        val profile = userProfile ?: return
-        if (profile.email.isBlank()) return
+        val profile = userProfile
+        if (profile == null) {
+            showEmailStatus("⚠️ Profile not loaded – email not sent", isError = true)
+            return
+        }
+        if (profile.email.isBlank()) {
+            showEmailStatus("⚠️ No email in profile – email not sent", isError = true)
+            return
+        }
 
         val date = SimpleDateFormat("dd MMM yyyy, h:mm a", Locale.getDefault()).format(Date())
-        var summary = ""
+        var summary    = ""
         var tasksArray = JSONArray()
 
-        // Parse analysis
         if (analysisJson.isNotBlank()) {
             try {
                 val obj = JSONObject(analysisJson)
-                summary     = obj.optString("summary", "")
-                tasksArray  = obj.optJSONArray("tasks") ?: JSONArray()
+                summary    = obj.optString("summary", "")
+                tasksArray = obj.optJSONArray("tasks") ?: JSONArray()
             } catch (_: Exception) {}
         }
 
         val payload = JSONObject().apply {
-            put("to_email",   profile.email)
-            put("user_name",  profile.name)
-            put("company",    profile.company)
+            put("to_email",    profile.email)
+            put("user_name",   profile.name)
+            put("company",     profile.company)
             put("designation", profile.designation)
             put("meeting_date", date)
-            put("summary",    summary)
-            put("tasks",      tasksArray)
-            put("transcript", transcript)
+            put("summary",     summary)
+            put("tasks",       tasksArray)
+            put("transcript",  transcript)
         }
+
+        Log.i("MainActivity", "sendMomEmail → ${profile.email}")
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val baseUrl = ServerConfig.getBaseUrl(applicationContext)
-                val request = Request.Builder()
+                val baseUrl  = ServerConfig.getBaseUrl(applicationContext)
+                val request  = Request.Builder()
                     .url("$baseUrl/send-mom")
                     .post(payload.toString().toRequestBody("application/json".toMediaType()))
+                    .addHeader("Content-Type", "application/json")
                     .build()
 
-                val response = httpClient.newCall(request).execute()
-                val success  = response.isSuccessful
-                Log.i("MainActivity", "MOM email: HTTP ${response.code}")
+                val response     = httpClient.newCall(request).execute()
+                val responseBody = response.body?.string() ?: ""
+                Log.i("MainActivity", "MOM HTTP ${response.code}: $responseBody")
 
                 withContext(Dispatchers.Main) {
-                    binding.tvEmailSent.text = if (success)
-                        "📧 MOM emailed to ${profile.email}"
-                    else
-                        "⚠️ Email send failed (check SMTP config on server)"
-                    binding.tvEmailSent.visibility = View.VISIBLE
+                    if (response.isSuccessful) {
+                        showEmailStatus("📧 MOM emailed to ${profile.email}", isError = false)
+                    } else {
+                        val detail = try {
+                            JSONObject(responseBody).optString("detail", "HTTP ${response.code}")
+                        } catch (_: Exception) { "HTTP ${response.code}" }
+                        showEmailStatus("⚠️ $detail", isError = true)
+                    }
                 }
             } catch (e: Exception) {
-                Log.e("MainActivity", "sendMomEmail error: $e")
+                Log.e("MainActivity", "sendMomEmail error", e)
                 withContext(Dispatchers.Main) {
-                    binding.tvEmailSent.text = "⚠️ Could not send email: ${e.message}"
-                    binding.tvEmailSent.visibility = View.VISIBLE
+                    showEmailStatus("⚠️ Network error: ${e.message}", isError = true)
                 }
             }
         }
     }
 
+    private fun showEmailStatus(message: String, isError: Boolean) {
+        binding.tvEmailSentText.text = message
+        binding.tvEmailSentText.setTextColor(
+            getColor(if (isError) android.R.color.holo_red_light else R.color.accent_green)
+        )
+        binding.tvEmailSent.visibility = View.VISIBLE
+    }
+
     // ------------------------------------------------------------------
     // Transcript
     // ------------------------------------------------------------------
-
     private fun showTranscript(text: String) {
-        binding.transcriptCard.visibility = View.VISIBLE
         binding.tvTranscript.text = if (text.isNotBlank()) text
                                     else getString(R.string.transcript_empty)
     }
 
+    // ------------------------------------------------------------------
+    // Clear results
+    // ------------------------------------------------------------------
     private fun clearResults() {
-        listOf(binding.tvUploadStatus, binding.summaryCard, binding.tasksCard,
-               binding.tvEmailSent, binding.transcriptCard).forEach {
-            it.visibility = View.GONE
-        }
-        binding.tvTranscript.text  = ""
-        binding.tvSummary.text     = ""
+        binding.resultsSection.visibility    = View.GONE
+        binding.tvUploadStatus.visibility    = View.GONE
+        binding.tvEmailSent.visibility       = View.GONE
+        binding.calendarBanner.visibility    = View.GONE
+        binding.tvSummary.text               = ""
+        binding.tvTranscript.text            = ""
         binding.tasksContainer.removeAllViews()
+        // Reset chips to default state
+        binding.chipSummary.isSelected    = true
+        binding.chipTasks.isSelected      = false
+        binding.chipTranscript.isSelected = false
+        binding.chipSummary.setTextColor(getColor(R.color.white))
+        binding.chipTasks.setTextColor(getColor(R.color.text_secondary))
+        binding.chipTranscript.setTextColor(getColor(R.color.text_secondary))
     }
 
     // ------------------------------------------------------------------
     // Timer
     // ------------------------------------------------------------------
-
     private fun startTimer() { handler.removeCallbacks(timerRunnable); handler.post(timerRunnable) }
     private fun stopTimer()  { handler.removeCallbacks(timerRunnable) }
 
@@ -556,9 +680,8 @@ class MainActivity : AppCompatActivity() {
     private fun showToast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 
     // ------------------------------------------------------------------
-    // Server URL settings dialog
+    // Server URL dialog
     // ------------------------------------------------------------------
-
     private fun showServerUrlDialog() {
         val input = EditText(this).apply {
             setText(ServerConfig.getBaseUrl(this@MainActivity))
@@ -574,7 +697,7 @@ class MainActivity : AppCompatActivity() {
             addView(input)
         }
         AlertDialog.Builder(this)
-            .setTitle("⚙️ Server URL")
+            .setTitle("Pravah AI – Server URL")
             .setMessage(
                 "Cloud: https://meeting-ai-agent-6emk.onrender.com\n" +
                 "Emulator: http://10.0.2.2:8000"
@@ -582,12 +705,12 @@ class MainActivity : AppCompatActivity() {
             .setView(wrap)
             .setPositiveButton("Save") { _, _ ->
                 val saved = ServerConfig.saveBaseUrl(this, input.text.toString().trim())
-                showToast("✅ Saved: $saved")
+                showToast("Saved: $saved")
             }
             .setNegativeButton("Cancel", null)
             .setNeutralButton("Reset") { _, _ ->
                 ServerConfig.saveBaseUrl(this, ServerConfig.DEFAULT_URL)
-                showToast("🔄 Reset to ${ServerConfig.DEFAULT_URL}")
+                showToast("Reset to ${ServerConfig.DEFAULT_URL}")
             }
             .show()
     }

@@ -1,2 +1,31 @@
+# Environment secrets
 .env
-.env
+*.env
+
+# Android build outputs
+app/build/
+build/
+.gradle/
+local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+backend/__pycache__/
+backend/.venv/
+backend/venv/
+backend/uploads/
+
+# Kotlin/Java
+*.class

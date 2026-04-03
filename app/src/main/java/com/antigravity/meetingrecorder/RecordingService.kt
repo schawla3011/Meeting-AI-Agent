@@ -245,7 +245,7 @@ class RecordingService : Service() {
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
-            CHANNEL_ID, "Recording & Upload", NotificationManager.IMPORTANCE_LOW
+            CHANNEL_ID, "Pravah AI – Recording", NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "Shown while recording or uploading"
             setShowBadge(false)
@@ -268,8 +268,8 @@ class RecordingService : Service() {
 
     private fun buildRecordingNotification(): Notification =
         NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("🔴 Recording in progress")
-            .setContentText("Tap to return · recording saved automatically on stop")
+            .setContentTitle("🔴 Pravah AI – Recording")
+            .setContentText("Meeting in progress · tap to return")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentIntent(openAppPendingIntent())
             .addAction(android.R.drawable.ic_media_pause, "Stop", stopPendingIntent())
@@ -279,8 +279,8 @@ class RecordingService : Service() {
 
     private fun buildUploadingNotification(): Notification =
         NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("☁️ Uploading recording…")
-            .setContentText("Please wait — do not close the app")
+            .setContentTitle("☁️ Pravah AI – Processing")
+            .setContentText("Transcribing and analysing your meeting…")
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentIntent(openAppPendingIntent())
             .setOngoing(true).setSilent(true)

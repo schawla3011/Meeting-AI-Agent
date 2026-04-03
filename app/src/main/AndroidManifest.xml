@@ -23,6 +23,10 @@
     <!-- Network access for audio upload -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Calendar access for auto-scheduling action items -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

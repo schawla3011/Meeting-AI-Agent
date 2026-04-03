@@ -56,10 +56,12 @@ a single, valid JSON object — no markdown fences, no extra text — in this ex
 }
 
 Rules:
+- ALWAYS write the summary and task descriptions in ENGLISH, even if the transcript is in Hindi
+  or another language. Translate content to English where needed.
 - summary should have 3-7 bullet points covering the key discussion points.
 - Extract EVERY actionable task, even if vague.
 - owner must be a name from the transcript. Use "Unassigned" only if no person is linked.
-- deadline must be a verbatim quote from the transcript or "Not specified".
+- deadline must be a verbatim quote from the transcript (translated to English) or "Not specified".
 - If the transcript is too short or incoherent, return an empty tasks array and a 1-bullet summary.
 - Return ONLY the JSON object, nothing else.
 
@@ -146,23 +148,57 @@ async def send_mom(payload: dict) -> JSONResponse:
         meeting_date=meeting_date, summary=summary, tasks=tasks, transcript=transcript
     )
 
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"📋 MOM – {meeting_date} | Anti Gravity Meeting Recorder"
-        msg["From"]    = SMTP_EMAIL
-        msg["To"]      = to_email
-        msg.attach(MIMEText(html, "html", "utf-8"))
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"📋 Meeting Minutes – {meeting_date} | Pravah AI"
+    msg["From"]    = SMTP_EMAIL
+    msg["To"]      = to_email
+    msg.attach(MIMEText(html, "html", "utf-8"))
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+    sent = False
+    last_exc = None
+
+    # Try port 587 with STARTTLS first (most reliable with Gmail App Passwords)
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+        sent = True
+        logger.info("MOM sent via port 587 to %s", to_email)
+    except Exception as exc587:
+        last_exc = exc587
+        logger.warning("Port 587 failed (%s), trying port 465 …", exc587)
 
-        logger.info("MOM sent to %s", to_email)
+    # Fall back to port 465 with SSL
+    if not sent:
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as server:
+                server.login(SMTP_EMAIL, SMTP_PASSWORD)
+                server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+            sent = True
+            logger.info("MOM sent via port 465 to %s", to_email)
+        except Exception as exc465:
+            last_exc = exc465
+            logger.error("Port 465 also failed: %s", exc465)
+
+    if sent:
         return JSONResponse({"success": True, "message": f"MOM sent to {to_email}"})
 
-    except Exception as exc:
-        logger.error("SMTP error: %s", exc)
-        raise HTTPException(500, f"Email send failed: {exc}") from exc
+    # Build a human-readable error (never expose raw SMTP details to client)
+    err_str = str(last_exc)
+    if "535" in err_str or "BadCredentials" in err_str or "Username and Password" in err_str:
+        friendly = "Gmail App Password rejected. Regenerate it at myaccount.google.com/apppasswords (no spaces) and update SMTP_PASSWORD on Render."
+    elif "534" in err_str or "Application-specific" in err_str:
+        friendly = "Gmail requires an App Password. Go to myaccount.google.com/apppasswords to generate one."
+    elif "Connection" in err_str or "timeout" in err_str.lower():
+        friendly = "Could not connect to Gmail SMTP. Check Render outbound network settings."
+    else:
+        friendly = "Email delivery failed. Check SMTP_EMAIL and SMTP_PASSWORD on Render."
+
+    logger.error("Final SMTP error detail: %s", last_exc)
+    raise HTTPException(500, friendly)
 
 
 def _build_mom_html(
@@ -235,7 +271,7 @@ def _build_mom_html(
 
       <!-- Footer -->
       <tr><td style="background:#121212;padding:20px 32px;text-align:center;">
-        <p style="margin:0;color:#616161;font-size:11px;">Sent by Anti Gravity AI Meeting Recorder</p>
+        <p style="margin:0;color:#616161;font-size:11px;">Sent by Pravah AI · Your AI-Powered Meeting Intelligence</p>
       </td></tr>
 
     </table>
@@ -381,6 +417,18 @@ def _pipeline(audio_path: Path, filename: str, size_mb: float) -> None:
 # Whisper helper
 # ---------------------------------------------------------------------------
 
+def _has_urdu_script(text: str) -> bool:
+    """
+    Returns True if >10% of the text characters are Arabic/Urdu Unicode block.
+    Used to detect when Whisper mistakenly outputs Urdu instead of English.
+    Arabic block: U+0600-U+06FF   Urdu extended: U+0750-U+077F
+    """
+    if not text:
+        return False
+    arabic = sum(1 for c in text if '\u0600' <= c <= '\u06FF' or '\u0750' <= c <= '\u077F')
+    return arabic > max(5, len(text) * 0.10)
+
+
 def _transcribe(audio_path: Path, size_mb: float) -> str:
     if not OPENAI_API_KEY:
         return ""
@@ -389,14 +437,52 @@ def _transcribe(audio_path: Path, size_mb: float) -> str:
     try:
         import openai
         client = openai.OpenAI(api_key=OPENAI_API_KEY)
-        logger.info("Sending '%s' to Whisper …", audio_path.name)
+
+        # ── Pass 1: Auto-detect language ──────────────────────────────────
+        # We use verbose_json so Whisper tells us which language it detected.
+        # The prompt is written in English to bias Whisper toward Latin script
+        # when the meeting is in English (Indian accent → often misdetected as Urdu).
+        logger.info("Whisper pass-1 (auto-detect) for '%s' …", audio_path.name)
         with open(audio_path, "rb") as f:
-            response = client.audio.transcriptions.create(
-                model="whisper-1", file=f, response_format="text",
+            resp1 = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=f,
+                response_format="verbose_json",
+                prompt=(
+                    "Professional business meeting. "
+                    "Participants may speak English or Hindi. "
+                    "Transcribe exactly what is spoken."
+                ),
             )
-        transcript = response.strip() if isinstance(response, str) else getattr(response, "text", str(response)).strip()
-        logger.info("Transcript (%d chars)", len(transcript))
+
+        detected_lang = getattr(resp1, "language", "en") or "en"
+        transcript    = getattr(resp1, "text", "").strip()
+        logger.info("Detected language: '%s', chars: %d", detected_lang, len(transcript))
+
+        # ── Pass 2: Retry if Urdu script was returned for non-Urdu meeting ─
+        # Whisper confuses Indian English (and conversational Hindi) with Urdu
+        # because they share the same spoken phonemes. If the output contains
+        # Arabic/Urdu script characters, we retry forcing English transcription.
+        if _has_urdu_script(transcript) or detected_lang in ("ur", "urdu"):
+            logger.warning(
+                "Urdu script detected (lang=%s) — retrying with language=en …", detected_lang
+            )
+            with open(audio_path, "rb") as f:
+                resp2 = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=f,
+                    response_format="text",
+                    language="en",
+                    prompt="Professional business meeting in English.",
+                )
+            transcript = (
+                resp2.strip() if isinstance(resp2, str)
+                else getattr(resp2, "text", str(resp2)).strip()
+            )
+            logger.info("Pass-2 (forced en) transcript: %d chars", len(transcript))
+
         return transcript
+
     except Exception as exc:
         logger.error("Whisper failed: %s", exc)
         return f"[Transcription error: {exc}]"
