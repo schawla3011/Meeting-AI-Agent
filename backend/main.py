@@ -161,7 +161,7 @@ async def send_mom(payload: dict) -> JSONResponse:
 
     # Try port 587 with STARTTLS first (most reliable with Gmail App Passwords)
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
             server.ehlo()
             server.starttls()
             server.ehlo()
@@ -176,7 +176,7 @@ async def send_mom(payload: dict) -> JSONResponse:
     # Fall back to port 465 with SSL
     if not sent:
         try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as server:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as server:
                 server.login(SMTP_EMAIL, SMTP_PASSWORD)
                 server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
             sent = True

@@ -65,6 +65,14 @@ class MainActivity : AppCompatActivity() {
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
+    // Longer read timeout for /send-mom: SMTP can take up to 30s on the server
+    // (15s × 2 port attempts) so 90s gives ample headroom
+    private val momHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(90, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .build()
+
     // ------------------------------------------------------------------
     // Service binding
     // ------------------------------------------------------------------
@@ -613,7 +621,7 @@ class MainActivity : AppCompatActivity() {
                     .addHeader("Content-Type", "application/json")
                     .build()
 
-                val response     = httpClient.newCall(request).execute()
+                val response     = momHttpClient.newCall(request).execute()
                 val responseBody = response.body?.string() ?: ""
                 Log.i("MainActivity", "MOM HTTP ${response.code}: $responseBody")
 
