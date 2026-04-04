@@ -167,9 +167,9 @@ async def send_mom(payload: dict) -> JSONResponse:
             logger.info("MOM sent via Resend to %s", to_email)
             return JSONResponse({"success": True, "message": f"MOM sent to {to_email}"})
         except Exception as exc:
-            logger.warning("Resend failed (%s), trying SMTP …", exc)
-            if not has_smtp:
-                raise HTTPException(500, f"Resend delivery failed: {exc}")
+            logger.error("Resend failed: %s", exc)
+            # On Render, SMTP is blocked — never fall through, always surface Resend error
+            raise HTTPException(500, f"Resend delivery failed: {exc}")
 
     # ── Strategy 2: Gmail SMTP (local dev only — blocked on Render free tier) ─
     msg = MIMEMultipart("alternative")
@@ -235,9 +235,14 @@ def _send_via_resend(to_email: str, user_name: str, subject: str, html: str) -> 
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        body = resp.read().decode()
-        logger.info("Resend response %s: %s", resp.status, body[:200])
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = resp.read().decode()
+            logger.info("Resend response %s: %s", resp.status, body[:200])
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode()
+        logger.error("Resend HTTP %s: %s", e.code, error_body)
+        raise Exception(f"Resend HTTP {e.code}: {error_body[:300]}")
 
 
 def _build_mom_html(
