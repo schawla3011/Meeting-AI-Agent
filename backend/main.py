@@ -190,16 +190,16 @@ async def send_mom(payload: dict) -> JSONResponse:
 
     # Build a human-readable error (never expose raw SMTP details to client)
     err_str = str(last_exc)
+    logger.error("Final SMTP error detail: %s", last_exc)
     if "535" in err_str or "BadCredentials" in err_str or "Username and Password" in err_str:
         friendly = "Gmail App Password rejected. Regenerate it at myaccount.google.com/apppasswords (no spaces) and update SMTP_PASSWORD on Render."
     elif "534" in err_str or "Application-specific" in err_str:
         friendly = "Gmail requires an App Password. Go to myaccount.google.com/apppasswords to generate one."
-    elif "Connection" in err_str or "timeout" in err_str.lower():
-        friendly = "Could not connect to Gmail SMTP. Check Render outbound network settings."
+    elif "connection" in err_str.lower() or "timeout" in err_str.lower() or "errno" in err_str.lower():
+        friendly = f"Could not connect to Gmail SMTP (Render may be blocking port 587/465): {err_str[:120]}"
     else:
-        friendly = "Email delivery failed. Check SMTP_EMAIL and SMTP_PASSWORD on Render."
+        friendly = f"Email delivery failed: {err_str[:200]}"
 
-    logger.error("Final SMTP error detail: %s", last_exc)
     raise HTTPException(500, friendly)
 
 
