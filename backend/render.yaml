@@ -8,8 +8,8 @@ services:
     envVars:
       - key: OPENAI_API_KEY
         sync: false   # paste value in Render dashboard
-      - key: RESEND_API_KEY
-        sync: false   # get free key at resend.com — primary email provider
+      - key: BREVO_API_KEY
+        sync: false   # get free key at brevo.com — primary email provider (HTTPS)
       - key: SMTP_EMAIL
         sync: false   # Gmail address — local dev fallback only
       - key: SMTP_PASSWORD

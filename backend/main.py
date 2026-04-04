@@ -34,7 +34,7 @@ UPLOAD_DIR       = "uploads"
 MAX_FILE_SIZE_MB = 500
 WHISPER_MAX_MB   = 24
 OPENAI_API_KEY   = os.environ.get("OPENAI_API_KEY", "")
-RESEND_API_KEY   = os.environ.get("RESEND_API_KEY", "")   # primary — works on Render free tier
+BREVO_API_KEY    = os.environ.get("BREVO_API_KEY", "")    # primary — HTTPS, works on Render free tier
 SMTP_EMAIL       = os.environ.get("SMTP_EMAIL", "")
 SMTP_PASSWORD    = os.environ.get("SMTP_PASSWORD", "")    # fallback for local dev only
 ALLOWED_TYPES    = {
@@ -117,8 +117,8 @@ async def health() -> dict:
         "status": "ok",
         "upload_dir": str(Path(UPLOAD_DIR).resolve()),
         "transcription_enabled": bool(OPENAI_API_KEY),
-        "email_enabled": bool(RESEND_API_KEY or (SMTP_EMAIL and SMTP_PASSWORD)),
-        "email_provider": "resend" if RESEND_API_KEY else ("gmail_smtp" if SMTP_EMAIL else "none"),
+        "email_enabled": bool(BREVO_API_KEY or (SMTP_EMAIL and SMTP_PASSWORD)),
+        "email_provider": "brevo" if BREVO_API_KEY else ("gmail_smtp" if SMTP_EMAIL else "none"),
         "gpt_model": GPT_MODEL,
     }
 
@@ -134,8 +134,8 @@ async def send_mom(payload: dict) -> JSONResponse:
     Payload: {to_email, user_name, company, designation, meeting_date, summary, tasks[], transcript}
 
     Delivery strategy:
-      1. Resend HTTP API (RESEND_API_KEY)  — works on Render free tier (HTTPS)
-      2. Gmail SMTP port 587 / 465         — fallback for local dev only
+      1. Brevo HTTP API (BREVO_API_KEY)  — HTTPS, works on Render free tier
+      2. Gmail SMTP port 587 / 465       — fallback for local dev only
     """
     to_email     = payload.get("to_email", "").strip()
     user_name    = payload.get("user_name", "there")
@@ -149,10 +149,10 @@ async def send_mom(payload: dict) -> JSONResponse:
     if not to_email:
         raise HTTPException(400, "to_email is required")
 
-    has_resend = bool(RESEND_API_KEY)
-    has_smtp   = bool(SMTP_EMAIL and SMTP_PASSWORD)
-    if not has_resend and not has_smtp:
-        raise HTTPException(503, "No email provider configured. Set RESEND_API_KEY in Render dashboard.")
+    has_brevo = bool(BREVO_API_KEY)
+    has_smtp  = bool(SMTP_EMAIL and SMTP_PASSWORD)
+    if not has_brevo and not has_smtp:
+        raise HTTPException(503, "No email provider configured. Set BREVO_API_KEY in Render dashboard.")
 
     html    = _build_mom_html(
         user_name=user_name, company=company, designation=designation,
@@ -160,16 +160,15 @@ async def send_mom(payload: dict) -> JSONResponse:
     )
     subject = f"📋 Meeting Minutes – {meeting_date} | Pravah AI"
 
-    # ── Strategy 1: Resend HTTPS API (works on Render free tier) ──────────
-    if has_resend:
+    # ── Strategy 1: Brevo HTTPS API (works on Render free tier) ───────────
+    if has_brevo:
         try:
-            _send_via_resend(to_email=to_email, user_name=user_name, subject=subject, html=html)
-            logger.info("MOM sent via Resend to %s", to_email)
+            _send_via_brevo(to_email=to_email, user_name=user_name, subject=subject, html=html)
+            logger.info("MOM sent via Brevo to %s", to_email)
             return JSONResponse({"success": True, "message": f"MOM sent to {to_email}"})
         except Exception as exc:
-            logger.error("Resend failed: %s", exc)
-            # On Render, SMTP is blocked — never fall through, always surface Resend error
-            raise HTTPException(500, f"Resend delivery failed: {exc}")
+            logger.error("Brevo failed: %s", exc)
+            raise HTTPException(500, f"Brevo delivery failed: {exc}")
 
     # ── Strategy 2: Gmail SMTP (local dev only — blocked on Render free tier) ─
     msg = MIMEMultipart("alternative")
@@ -217,32 +216,33 @@ async def send_mom(payload: dict) -> JSONResponse:
     raise HTTPException(500, friendly)
 
 
-def _send_via_resend(to_email: str, user_name: str, subject: str, html: str) -> None:
-    """Send email via Resend HTTPS API — works on Render free tier."""
+def _send_via_brevo(to_email: str, user_name: str, subject: str, html: str) -> None:
+    """Send email via Brevo Transactional Email HTTPS API — works on Render free tier."""
     payload = json.dumps({
-        "from":    "Pravah AI <onboarding@resend.dev>",
-        "to":      [to_email],
-        "subject": subject,
-        "html":    html,
+        "sender":      {"name": "Pravah AI", "email": SMTP_EMAIL or "mom.pravah.ai@gmail.com"},
+        "to":          [{"email": to_email, "name": user_name}],
+        "subject":     subject,
+        "htmlContent": html,
     }).encode("utf-8")
 
     req = urllib.request.Request(
-        "https://api.resend.com/emails",
+        "https://api.brevo.com/v3/smtp/email",
         data=payload,
         headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type":  "application/json",
+            "accept":       "application/json",
+            "content-type": "application/json",
+            "api-key":      BREVO_API_KEY,
         },
         method="POST",
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             body = resp.read().decode()
-            logger.info("Resend response %s: %s", resp.status, body[:200])
+            logger.info("Brevo response %s: %s", resp.status, body[:200])
     except urllib.error.HTTPError as e:
         error_body = e.read().decode()
-        logger.error("Resend HTTP %s: %s", e.code, error_body)
-        raise Exception(f"Resend HTTP {e.code}: {error_body[:300]}")
+        logger.error("Brevo HTTP %s: %s", e.code, error_body)
+        raise Exception(f"Brevo HTTP {e.code}: {error_body[:300]}")
 
 
 def _build_mom_html(
