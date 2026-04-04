@@ -13,6 +13,8 @@ import json
 import logging
 import smtplib
 import threading
+import urllib.request
+import urllib.error
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -32,8 +34,9 @@ UPLOAD_DIR       = "uploads"
 MAX_FILE_SIZE_MB = 500
 WHISPER_MAX_MB   = 24
 OPENAI_API_KEY   = os.environ.get("OPENAI_API_KEY", "")
+RESEND_API_KEY   = os.environ.get("RESEND_API_KEY", "")   # primary — works on Render free tier
 SMTP_EMAIL       = os.environ.get("SMTP_EMAIL", "")
-SMTP_PASSWORD    = os.environ.get("SMTP_PASSWORD", "")
+SMTP_PASSWORD    = os.environ.get("SMTP_PASSWORD", "")    # fallback for local dev only
 ALLOWED_TYPES    = {
     "audio/mp4", "audio/m4a", "audio/mpeg", "audio/aac",
     "audio/x-m4a", "application/octet-stream",
@@ -114,8 +117,8 @@ async def health() -> dict:
         "status": "ok",
         "upload_dir": str(Path(UPLOAD_DIR).resolve()),
         "transcription_enabled": bool(OPENAI_API_KEY),
-        "email_enabled": bool(SMTP_EMAIL and SMTP_PASSWORD),
-        "email_provider": "gmail_smtp" if (SMTP_EMAIL and SMTP_PASSWORD) else "none",
+        "email_enabled": bool(RESEND_API_KEY or (SMTP_EMAIL and SMTP_PASSWORD)),
+        "email_provider": "resend" if RESEND_API_KEY else ("gmail_smtp" if SMTP_EMAIL else "none"),
         "gpt_model": GPT_MODEL,
     }
 
@@ -127,9 +130,12 @@ class MomRequest(dict):
 @app.post("/send-mom")
 async def send_mom(payload: dict) -> JSONResponse:
     """
-    Sends a Meeting Minutes (MOM) email via Gmail SMTP.
+    Sends a Meeting Minutes (MOM) email.
     Payload: {to_email, user_name, company, designation, meeting_date, summary, tasks[], transcript}
-    Requires SMTP_EMAIL and SMTP_PASSWORD env vars set in Render dashboard.
+
+    Delivery strategy:
+      1. Resend HTTP API (RESEND_API_KEY)  — works on Render free tier (HTTPS)
+      2. Gmail SMTP port 587 / 465         — fallback for local dev only
     """
     to_email     = payload.get("to_email", "").strip()
     user_name    = payload.get("user_name", "there")
@@ -142,16 +148,32 @@ async def send_mom(payload: dict) -> JSONResponse:
 
     if not to_email:
         raise HTTPException(400, "to_email is required")
-    if not (SMTP_EMAIL and SMTP_PASSWORD):
-        raise HTTPException(503, "SMTP not configured on server (SMTP_EMAIL / SMTP_PASSWORD env vars)")
 
-    html = _build_mom_html(
+    has_resend = bool(RESEND_API_KEY)
+    has_smtp   = bool(SMTP_EMAIL and SMTP_PASSWORD)
+    if not has_resend and not has_smtp:
+        raise HTTPException(503, "No email provider configured. Set RESEND_API_KEY in Render dashboard.")
+
+    html    = _build_mom_html(
         user_name=user_name, company=company, designation=designation,
         meeting_date=meeting_date, summary=summary, tasks=tasks, transcript=transcript
     )
+    subject = f"📋 Meeting Minutes – {meeting_date} | Pravah AI"
 
+    # ── Strategy 1: Resend HTTPS API (works on Render free tier) ──────────
+    if has_resend:
+        try:
+            _send_via_resend(to_email=to_email, user_name=user_name, subject=subject, html=html)
+            logger.info("MOM sent via Resend to %s", to_email)
+            return JSONResponse({"success": True, "message": f"MOM sent to {to_email}"})
+        except Exception as exc:
+            logger.warning("Resend failed (%s), trying SMTP …", exc)
+            if not has_smtp:
+                raise HTTPException(500, f"Resend delivery failed: {exc}")
+
+    # ── Strategy 2: Gmail SMTP (local dev only — blocked on Render free tier) ─
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"📋 Meeting Minutes – {meeting_date} | Pravah AI"
+    msg["Subject"] = subject
     msg["From"]    = SMTP_EMAIL
     msg["To"]      = to_email
     msg.attach(MIMEText(html, "html", "utf-8"))
@@ -159,48 +181,63 @@ async def send_mom(payload: dict) -> JSONResponse:
     sent     = False
     last_exc = None
 
-    # Try port 587 with STARTTLS first (most reliable with Gmail App Passwords)
     try:
         with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
+            server.ehlo(); server.starttls(); server.ehlo()
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
         sent = True
-        logger.info("MOM sent via port 587 to %s", to_email)
+        logger.info("MOM sent via SMTP port 587 to %s", to_email)
     except Exception as exc587:
         last_exc = exc587
-        logger.warning("Port 587 failed (%s), trying port 465 …", exc587)
+        logger.warning("SMTP port 587 failed: %s", exc587)
 
-    # Fall back to port 465 with SSL
     if not sent:
         try:
             with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as server:
                 server.login(SMTP_EMAIL, SMTP_PASSWORD)
                 server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
             sent = True
-            logger.info("MOM sent via port 465 to %s", to_email)
+            logger.info("MOM sent via SMTP port 465 to %s", to_email)
         except Exception as exc465:
             last_exc = exc465
-            logger.error("Port 465 also failed: %s", exc465)
+            logger.error("SMTP port 465 also failed: %s", exc465)
 
     if sent:
         return JSONResponse({"success": True, "message": f"MOM sent to {to_email}"})
 
-    # Build a human-readable error (never expose raw SMTP details to client)
     err_str = str(last_exc)
-    logger.error("Final SMTP error detail: %s", last_exc)
-    if "535" in err_str or "BadCredentials" in err_str or "Username and Password" in err_str:
-        friendly = "Gmail App Password rejected. Regenerate it at myaccount.google.com/apppasswords (no spaces) and update SMTP_PASSWORD on Render."
-    elif "534" in err_str or "Application-specific" in err_str:
-        friendly = "Gmail requires an App Password. Go to myaccount.google.com/apppasswords to generate one."
-    elif "connection" in err_str.lower() or "timeout" in err_str.lower() or "errno" in err_str.lower():
-        friendly = f"Could not connect to Gmail SMTP (Render may be blocking port 587/465): {err_str[:120]}"
+    logger.error("Final SMTP error: %s", last_exc)
+    if "535" in err_str or "Username and Password" in err_str:
+        friendly = "Gmail App Password rejected. Regenerate at myaccount.google.com/apppasswords."
+    elif "connection" in err_str.lower() or "errno" in err_str.lower():
+        friendly = f"SMTP blocked by host: {err_str[:120]}"
     else:
         friendly = f"Email delivery failed: {err_str[:200]}"
-
     raise HTTPException(500, friendly)
+
+
+def _send_via_resend(to_email: str, user_name: str, subject: str, html: str) -> None:
+    """Send email via Resend HTTPS API — works on Render free tier."""
+    payload = json.dumps({
+        "from":    "Pravah AI <onboarding@resend.dev>",
+        "to":      [to_email],
+        "subject": subject,
+        "html":    html,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type":  "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        body = resp.read().decode()
+        logger.info("Resend response %s: %s", resp.status, body[:200])
 
 
 def _build_mom_html(
