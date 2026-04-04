@@ -34,7 +34,7 @@ UPLOAD_DIR       = "uploads"
 MAX_FILE_SIZE_MB = 500
 WHISPER_MAX_MB   = 24
 OPENAI_API_KEY   = os.environ.get("OPENAI_API_KEY", "")
-BREVO_API_KEY    = os.environ.get("BREVO_API_KEY", "")    # primary — HTTPS, works on Render free tier
+BREVO_API_KEY    = os.environ.get("BREVO_API_KEY", "").strip()  # primary — HTTPS, works on Render free tier
 SMTP_EMAIL       = os.environ.get("SMTP_EMAIL", "")
 SMTP_PASSWORD    = os.environ.get("SMTP_PASSWORD", "")    # fallback for local dev only
 ALLOWED_TYPES    = {
@@ -105,6 +105,11 @@ async def startup() -> None:
     logger.info("Upload dir: %s", Path(UPLOAD_DIR).resolve())
     if not OPENAI_API_KEY:
         logger.warning("OPENAI_API_KEY not set – Whisper + GPT will be skipped.")
+    if BREVO_API_KEY:
+        logger.info("BREVO_API_KEY loaded: %s...%s (len=%d)",
+                    BREVO_API_KEY[:8], BREVO_API_KEY[-4:], len(BREVO_API_KEY))
+    else:
+        logger.warning("BREVO_API_KEY not set.")
 
 
 # ---------------------------------------------------------------------------
