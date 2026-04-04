@@ -13,8 +13,6 @@ import json
 import logging
 import smtplib
 import threading
-import urllib.request
-import urllib.error
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -36,7 +34,6 @@ WHISPER_MAX_MB   = 24
 OPENAI_API_KEY   = os.environ.get("OPENAI_API_KEY", "")
 SMTP_EMAIL       = os.environ.get("SMTP_EMAIL", "")
 SMTP_PASSWORD    = os.environ.get("SMTP_PASSWORD", "")
-BREVO_API_KEY    = os.environ.get("BREVO_API_KEY", "")   # preferred — works on Render free tier
 ALLOWED_TYPES    = {
     "audio/mp4", "audio/m4a", "audio/mpeg", "audio/aac",
     "audio/x-m4a", "application/octet-stream",
@@ -117,8 +114,8 @@ async def health() -> dict:
         "status": "ok",
         "upload_dir": str(Path(UPLOAD_DIR).resolve()),
         "transcription_enabled": bool(OPENAI_API_KEY),
-        "email_enabled": bool(BREVO_API_KEY or (SMTP_EMAIL and SMTP_PASSWORD)),
-        "email_provider": "brevo" if BREVO_API_KEY else ("gmail_smtp" if SMTP_EMAIL else "none"),
+        "email_enabled": bool(SMTP_EMAIL and SMTP_PASSWORD),
+        "email_provider": "gmail_smtp" if (SMTP_EMAIL and SMTP_PASSWORD) else "none",
         "gpt_model": GPT_MODEL,
     }
 
@@ -130,12 +127,9 @@ class MomRequest(dict):
 @app.post("/send-mom")
 async def send_mom(payload: dict) -> JSONResponse:
     """
-    Sends a Meeting Minutes (MOM) email to the user.
+    Sends a Meeting Minutes (MOM) email via Gmail SMTP.
     Payload: {to_email, user_name, company, designation, meeting_date, summary, tasks[], transcript}
-
-    Delivery strategy (in priority order):
-      1. Brevo HTTP API (BREVO_API_KEY)  — works on Render free tier (HTTPS port 443)
-      2. Gmail SMTP port 587 / 465       — fallback for local/self-hosted deployments
+    Requires SMTP_EMAIL and SMTP_PASSWORD env vars set in Render dashboard.
     """
     to_email     = payload.get("to_email", "").strip()
     user_name    = payload.get("user_name", "there")
@@ -148,32 +142,13 @@ async def send_mom(payload: dict) -> JSONResponse:
 
     if not to_email:
         raise HTTPException(400, "to_email is required")
-
-    has_brevo = bool(BREVO_API_KEY)
-    has_smtp  = bool(SMTP_EMAIL and SMTP_PASSWORD)
-    if not has_brevo and not has_smtp:
-        raise HTTPException(503, "No email provider configured. Set BREVO_API_KEY on Render.")
+    if not (SMTP_EMAIL and SMTP_PASSWORD):
+        raise HTTPException(503, "SMTP not configured on server (SMTP_EMAIL / SMTP_PASSWORD env vars)")
 
     html = _build_mom_html(
         user_name=user_name, company=company, designation=designation,
         meeting_date=meeting_date, summary=summary, tasks=tasks, transcript=transcript
     )
-
-    # ── Strategy 1: Brevo HTTP API ─────────────────────────────────────────
-    if has_brevo:
-        try:
-            _send_via_brevo(to_email=to_email, user_name=user_name,
-                            subject=f"📋 Meeting Minutes – {meeting_date} | Pravah AI",
-                            html=html)
-            logger.info("MOM sent via Brevo to %s", to_email)
-            return JSONResponse({"success": True, "message": f"MOM sent to {to_email}"})
-        except Exception as brevo_exc:
-            logger.warning("Brevo failed (%s), trying SMTP …", brevo_exc)
-            # Fall through to SMTP if Brevo fails
-
-    # ── Strategy 2: Gmail SMTP (may be blocked on Render free tier) ────────
-    if not has_smtp:
-        raise HTTPException(500, "Brevo delivery failed and no SMTP fallback configured.")
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"📋 Meeting Minutes – {meeting_date} | Pravah AI"
@@ -184,75 +159,48 @@ async def send_mom(payload: dict) -> JSONResponse:
     sent     = False
     last_exc = None
 
-    # Try port 587 with STARTTLS first
+    # Try port 587 with STARTTLS first (most reliable with Gmail App Passwords)
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
             server.ehlo()
             server.starttls()
             server.ehlo()
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
         sent = True
-        logger.info("MOM sent via SMTP port 587 to %s", to_email)
+        logger.info("MOM sent via port 587 to %s", to_email)
     except Exception as exc587:
         last_exc = exc587
-        logger.warning("SMTP port 587 failed (%s), trying port 465 …", exc587)
+        logger.warning("Port 587 failed (%s), trying port 465 …", exc587)
 
     # Fall back to port 465 with SSL
     if not sent:
         try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20) as server:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as server:
                 server.login(SMTP_EMAIL, SMTP_PASSWORD)
                 server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
             sent = True
-            logger.info("MOM sent via SMTP port 465 to %s", to_email)
+            logger.info("MOM sent via port 465 to %s", to_email)
         except Exception as exc465:
             last_exc = exc465
-            logger.error("SMTP port 465 also failed: %s", exc465)
+            logger.error("Port 465 also failed: %s", exc465)
 
     if sent:
         return JSONResponse({"success": True, "message": f"MOM sent to {to_email}"})
 
+    # Build a human-readable error (never expose raw SMTP details to client)
     err_str = str(last_exc)
     if "535" in err_str or "BadCredentials" in err_str or "Username and Password" in err_str:
-        friendly = "Gmail App Password rejected. Regenerate it at myaccount.google.com/apppasswords and update SMTP_PASSWORD on Render."
+        friendly = "Gmail App Password rejected. Regenerate it at myaccount.google.com/apppasswords (no spaces) and update SMTP_PASSWORD on Render."
     elif "534" in err_str or "Application-specific" in err_str:
-        friendly = "Gmail requires an App Password (not your regular password). Go to myaccount.google.com/apppasswords."
-    elif "timed out" in err_str.lower() or "Connection" in err_str:
-        friendly = "SMTP ports are blocked by the hosting provider. Set BREVO_API_KEY on Render for reliable delivery."
+        friendly = "Gmail requires an App Password. Go to myaccount.google.com/apppasswords to generate one."
+    elif "Connection" in err_str or "timeout" in err_str.lower():
+        friendly = "Could not connect to Gmail SMTP. Check Render outbound network settings."
     else:
-        friendly = f"Email delivery failed: {err_str[:120]}"
+        friendly = "Email delivery failed. Check SMTP_EMAIL and SMTP_PASSWORD on Render."
 
-    logger.error("Final SMTP error: %s", last_exc)
+    logger.error("Final SMTP error detail: %s", last_exc)
     raise HTTPException(500, friendly)
-
-
-def _send_via_brevo(to_email: str, user_name: str, subject: str, html: str) -> None:
-    """
-    Sends an email using Brevo (Sendinblue) Transactional Email HTTP API.
-    Uses only stdlib urllib — no extra packages needed.
-    Raises an exception on failure.
-    """
-    payload = json.dumps({
-        "sender":      {"name": "Pravah AI", "email": SMTP_EMAIL or "noreply@pravah.ai"},
-        "to":          [{"email": to_email, "name": user_name}],
-        "subject":     subject,
-        "htmlContent": html,
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        "https://api.brevo.com/v3/smtp/email",
-        data=payload,
-        headers={
-            "accept":       "application/json",
-            "content-type": "application/json",
-            "api-key":      BREVO_API_KEY,
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        body = resp.read().decode()
-        logger.info("Brevo response %s: %s", resp.status, body[:200])
 
 
 def _build_mom_html(
@@ -337,8 +285,8 @@ def _build_mom_html(
 
 @app.post("/upload-audio")
 async def upload_audio(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
 ) -> JSONResponse:
     """
     1. Validate MIME + size.

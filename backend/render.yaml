@@ -8,12 +8,10 @@ services:
     envVars:
       - key: OPENAI_API_KEY
         sync: false   # paste value in Render dashboard
-      - key: BREVO_API_KEY
-        sync: false   # PRIMARY email sender – get free key at app.brevo.com
       - key: SMTP_EMAIL
-        sync: false   # Gmail address (fallback – may be blocked on Render free tier)
+        sync: false   # Gmail address e.g. mom.pravah.ai@gmail.com
       - key: SMTP_PASSWORD
-        sync: false   # Gmail App Password (fallback)
+        sync: false   # Gmail App Password (myaccount.google.com/apppasswords)
       - key: PYTHON_VERSION
         value: "3.11"
     healthCheckPath: /health
