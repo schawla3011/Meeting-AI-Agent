@@ -5,40 +5,42 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
 
-    <!-- Anticlockwise circular arrow (history) -->
-    <!-- Outer arc going counter-clockwise from ~30° to ~300° -->
+    <!--
+        Counter-clockwise circular arrow:
+        Arc from 4 o'clock (19,16) sweeping CCW 240° to 12 o'clock (12,4).
+        Large arc (>180°), sweep=0 = counter-clockwise in SVG/VectorDrawable.
+    -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="@color/text_secondary"
         android:strokeWidth="2"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M12,3 A9,9 0 1,0 4.22,7.5" />
+        android:pathData="M 19,16 A 8,8 0 1 0 12,4" />
 
-    <!-- Arrowhead for anticlockwise direction (at ~210° position) -->
+    <!-- Arrowhead at 12 o'clock pointing LEFT (direction of CCW motion at the top) -->
     <path
         android:fillColor="@color/text_secondary"
-        android:pathData="M4.22,7.5 L1.5,5.5 L4.5,4.5 Z" />
+        android:pathData="M 10,4 L 13.5,1.8 L 13.5,6.2 Z" />
 
-    <!-- Clock hour hand (pointing roughly to 9 o'clock = 3 hours mark) -->
+    <!-- Clock hour hand (~10 o'clock) -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="@color/text_secondary"
-        android:strokeWidth="2"
+        android:strokeWidth="1.5"
         android:strokeLineCap="round"
-        android:pathData="M12,12 L9,12" />
+        android:pathData="M 12,12 L 9.8,10.3" />
 
-    <!-- Clock minute hand (pointing roughly to 12 o'clock) -->
+    <!-- Clock minute hand (pointing to 12) -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="@color/text_secondary"
-        android:strokeWidth="2"
+        android:strokeWidth="1.5"
         android:strokeLineCap="round"
-        android:pathData="M12,12 L12,8" />
+        android:pathData="M 12,12 L 12,8.5" />
 
-    <!-- Center dot (drawn as a path since <circle> is not valid in VectorDrawable) -->
+    <!-- Center dot -->
     <path
         android:fillColor="@color/text_secondary"
-        android:pathData="M12,11 A1,1 0 1,0 12,13 A1,1 0 1,0 12,11 Z" />
+        android:pathData="M 11.2,12 A 0.8,0.8 0 1 0 12.8,12 A 0.8,0.8 0 1 0 11.2,12 Z" />
 
 </vector>

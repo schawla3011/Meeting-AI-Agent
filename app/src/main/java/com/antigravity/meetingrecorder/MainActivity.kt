@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
+import androidx.appcompat.app.AppCompatDelegate
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
@@ -252,6 +253,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnHistory.setOnClickListener     { startActivity(Intent(this, MeetingHistoryActivity::class.java)) }
         binding.btnSettings.setOnClickListener    { showSettingsDialog() }
         binding.btnLogout.setOnClickListener      { confirmLogout() }
+
+        // Avatar tap → open profile
+        binding.tvAvatar.setOnClickListener { profileLauncher.launch(Intent(this, ProfileActivity::class.java)) }
 
         // Tab chips
         binding.chipSummary.setOnClickListener    { showResultsTab(ResultTab.SUMMARY) }
@@ -721,14 +725,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ------------------------------------------------------------------
-    // Settings dialog — Profile only (server URL is managed via app updates)
+    // Settings dialog — Theme selection
     // ------------------------------------------------------------------
     private fun showSettingsDialog() {
+        val prefs   = getSharedPreferences(MeetingRecorderApp.PREFS_NAME, Context.MODE_PRIVATE)
+        val current = prefs.getString(MeetingRecorderApp.KEY_THEME, MeetingRecorderApp.THEME_DARK)
+
+        val options = arrayOf(
+            if (current == MeetingRecorderApp.THEME_DARK)  "🌙  Dark Theme  ✓"  else "🌙  Dark Theme",
+            if (current == MeetingRecorderApp.THEME_LIGHT) "☀️  Light Theme  ✓" else "☀️  Light Theme"
+        )
+
         AlertDialog.Builder(this)
-            .setTitle("Settings")
-            .setItems(arrayOf("👤  Edit My Profile")) { _, which ->
-                when (which) {
-                    0 -> profileLauncher.launch(Intent(this, ProfileActivity::class.java))
+            .setTitle("Theme")
+            .setItems(options) { _, which ->
+                val chosen = if (which == 0) MeetingRecorderApp.THEME_DARK else MeetingRecorderApp.THEME_LIGHT
+                if (chosen != current) {
+                    prefs.edit().putString(MeetingRecorderApp.KEY_THEME, chosen).apply()
+                    AppCompatDelegate.setDefaultNightMode(
+                        if (chosen == MeetingRecorderApp.THEME_LIGHT) AppCompatDelegate.MODE_NIGHT_NO
+                        else AppCompatDelegate.MODE_NIGHT_YES
+                    )
+                    recreate()
                 }
             }
             .show()

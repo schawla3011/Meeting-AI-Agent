@@ -4,37 +4,39 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- Pravah AI Brand Colors -->
-    <color name="pravah_purple">#BB86FC</color>
-    <color name="pravah_blue">#7C4DFF</color>
-    <color name="pravah_teal">#03DAC6</color>
+    <color name="pravah_purple">#7C4DFF</color>
+    <color name="pravah_blue">#5C35CC</color>
+    <color name="pravah_teal">#00897B</color>
 
-    <!-- Backgrounds -->
-    <color name="background_dark">#060D1F</color>
-    <color name="surface_dark">#0D1B3E</color>
-    <color name="surface_elevated">#1A2744</color>
-    <color name="surface_card">#0F2040</color>
+    <!-- Backgrounds (light) -->
+    <color name="background_dark">#F0F4FF</color>
+    <color name="surface_dark">#FFFFFF</color>
+    <color name="surface_elevated">#EAF0FF</color>
+    <color name="surface_card">#F5F8FF</color>
 
     <!-- Brand -->
-    <color name="primary">#BB86FC</color>
-    <color name="primary_variant">#7C4DFF</color>
-    <color name="secondary">#03DAC6</color>
-    <color name="accent_gold">#FFD700</color>
-    <color name="accent_green">#4CAF7D</color>
-    <color name="accent_blue">#64B5F6</color>
+    <color name="primary">#7C4DFF</color>
+    <color name="primary_variant">#5C35CC</color>
+    <color name="secondary">#00897B</color>
+    <color name="accent_gold">#F57F17</color>
+    <color name="accent_green">#2E7D32</color>
+    <color name="accent_blue">#1565C0</color>
 
     <!-- Status -->
-    <color name="status_red">#CF6679</color>
-    <color name="status_grey">#757575</color>
+    <color name="status_red">#B00020</color>
+    <color name="status_grey">#9E9E9E</color>
 
-    <!-- Text -->
-    <color name="text_primary">#E0E0E0</color>
-    <color name="text_secondary">#9E9E9E</color>
-    <color name="text_hint">#616161</color>
-    <color name="divider">#1E3A5A</color>
+    <!-- Text (light) -->
+    <color name="text_primary">#1A1A2E</color>
+    <color name="text_secondary">#5A5A7A</color>
+    <color name="text_hint">#9898B8</color>
+    <color name="divider">#D0D8F0</color>
 
-    <!-- Task owner chip -->
-    <color name="owner_chip_bg">#0E2240</color>
-    <color name="owner_chip_text">#64B5F6</color>
-    <!-- Deadline text -->
-    <color name="deadline_text">#FFAB40</color>
+    <!-- Task chips (light) -->
+    <color name="owner_chip_bg">#E8EEFF</color>
+    <color name="owner_chip_text">#3D5AF1</color>
+    <color name="deadline_text">#D04000</color>
+
+    <!-- Always-light text for use on dark surfaces (header) in both themes -->
+    <color name="header_text_dim">#BBBBDD</color>
 </resources>

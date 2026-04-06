@@ -52,7 +52,7 @@
                     android:id="@+id/tv_user_designation"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="@color/header_text_dim"
                     android:textSize="11sp" />
             </LinearLayout>
         </LinearLayout>
