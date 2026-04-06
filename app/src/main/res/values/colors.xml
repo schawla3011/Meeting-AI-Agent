@@ -9,10 +9,10 @@
     <color name="pravah_teal">#00897B</color>
 
     <!-- Backgrounds (light) -->
-    <color name="background_dark">#F0F4FF</color>
+    <color name="background_dark">#F5F5F5</color>
     <color name="surface_dark">#FFFFFF</color>
-    <color name="surface_elevated">#EAF0FF</color>
-    <color name="surface_card">#F5F8FF</color>
+    <color name="surface_elevated">#EBEBEB</color>
+    <color name="surface_card">#F9F9F9</color>
 
     <!-- Brand -->
     <color name="primary">#7C4DFF</color>
@@ -26,16 +26,16 @@
     <color name="status_red">#B00020</color>
     <color name="status_grey">#9E9E9E</color>
 
-    <!-- Text (light) -->
-    <color name="text_primary">#1A1A2E</color>
-    <color name="text_secondary">#5A5A7A</color>
-    <color name="text_hint">#9898B8</color>
-    <color name="divider">#D0D8F0</color>
+    <!-- Text (light) — pure black for maximum readability -->
+    <color name="text_primary">#000000</color>
+    <color name="text_secondary">#333333</color>
+    <color name="text_hint">#888888</color>
+    <color name="divider">#E0E0E0</color>
 
     <!-- Task chips (light) -->
     <color name="owner_chip_bg">#E8EEFF</color>
-    <color name="owner_chip_text">#3D5AF1</color>
-    <color name="deadline_text">#D04000</color>
+    <color name="owner_chip_text">#2040CC</color>
+    <color name="deadline_text">#B83000</color>
 
     <!-- Always-light text for use on dark surfaces (header) in both themes -->
     <color name="header_text_dim">#BBBBDD</color>

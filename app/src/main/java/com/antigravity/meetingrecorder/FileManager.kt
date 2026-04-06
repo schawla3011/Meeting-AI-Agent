@@ -30,12 +30,12 @@ sealed class RecordingOutput {
  * Handles all file/URI creation and finalisation for recordings.
  *
  * Visible storage paths:
- *  - Android 10+  → Music/MeetingRecorder/<filename>.m4a   (MediaStore)
- *  - Android 8-9  → /sdcard/Music/MeetingRecorder/<filename>.m4a
+ *  - Android 10+  → Downloads/PravahAI/<filename>.m4a  (MediaStore Downloads — visible in Files app)
+ *  - Android 8-9  → /sdcard/Download/PravahAI/<filename>.m4a
  */
 object FileManager {
 
-    private const val SUB_DIR   = "MeetingRecorder"
+    private const val SUB_DIR   = "PravahAI"
     private const val DATE_FMT  = "yyyyMMdd_HHmmss"
     private const val MIME_TYPE = "audio/mp4"
 
@@ -45,21 +45,21 @@ object FileManager {
         val filename  = "meeting_$timestamp.m4a"
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10+: MediaStore — no storage permission required
+            // Android 10+: MediaStore Downloads — visible in Files > Downloads > PravahAI
             val values = ContentValues().apply {
-                put(MediaStore.Audio.Media.DISPLAY_NAME,  filename)
-                put(MediaStore.Audio.Media.MIME_TYPE,     MIME_TYPE)
-                put(MediaStore.Audio.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MUSIC}/$SUB_DIR")
-                put(MediaStore.Audio.Media.IS_PENDING,    1)
+                put(MediaStore.Downloads.DISPLAY_NAME,  filename)
+                put(MediaStore.Downloads.MIME_TYPE,     MIME_TYPE)
+                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$SUB_DIR")
+                put(MediaStore.Downloads.IS_PENDING,    1)
             }
             val uri = context.contentResolver
-                .insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values)
+                .insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
                 ?: throw IllegalStateException("MediaStore insert failed")
             RecordingOutput.MediaStoreEntry(uri, filename)
         } else {
             // Android 8-9: direct external storage (needs WRITE_EXTERNAL_STORAGE)
             val dir = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
                 SUB_DIR
             )
             if (!dir.exists()) dir.mkdirs()
@@ -69,13 +69,13 @@ object FileManager {
 
     /**
      * Must be called after recording stops on API 29+.
-     * Clears IS_PENDING so the file becomes visible to the user.
+     * Clears IS_PENDING so the file becomes visible to the user in Files app.
      */
     fun finalizeOutput(context: Context, output: RecordingOutput) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
             output is RecordingOutput.MediaStoreEntry) {
             val values = ContentValues().apply {
-                put(MediaStore.Audio.Media.IS_PENDING, 0)
+                put(MediaStore.Downloads.IS_PENDING, 0)
             }
             context.contentResolver.update(output.uri, values, null, null)
         }
@@ -84,7 +84,7 @@ object FileManager {
     /** Human-readable path shown in toasts / logs. */
     fun getDisplayPath(output: RecordingOutput): String = when (output) {
         is RecordingOutput.LegacyFile       -> output.file.absolutePath
-        is RecordingOutput.MediaStoreEntry  -> "Music/$SUB_DIR/${output.displayName}"
+        is RecordingOutput.MediaStoreEntry  -> "Downloads/$SUB_DIR/${output.displayName}"
     }
 
     /** Filename only — for display in the saved-toast. */
