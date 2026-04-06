@@ -42,7 +42,7 @@
                 android:id="@+id/tv_detail_filename"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/header_text_dim"
                 android:textSize="11sp"
                 android:maxLines="1"
                 android:ellipsize="end" />

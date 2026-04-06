@@ -6,37 +6,48 @@
     android:viewportHeight="24">
 
     <!--
-        Counter-clockwise circular arrow:
-        Arc from 4 o'clock (19,16) sweeping CCW 240° to 12 o'clock (12,4).
-        Large arc (>180°), sweep=0 = counter-clockwise in SVG/VectorDrawable.
+        History icon: nearly-complete counter-clockwise circle (300°),
+        gap at top-right, open chevron arrowhead at 12 o'clock pointing left
+        (direction of CCW motion), clock hands showing ~10:10.
+
+        Circle center (12,12), radius 8.
+        Arc start: 2 o'clock = (12 + 8·sin60°, 12 - 8·cos60°) = (18.93, 8)
+        Arc end  : 12 o'clock = (12, 4)
+        Sweep    : 300° CCW, large-arc-flag=1, sweep-flag=0
     -->
+
+    <!-- 300° CCW arc from 2 o'clock to 12 o'clock -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="@color/text_secondary"
         android:strokeWidth="2"
         android:strokeLineCap="round"
-        android:pathData="M 19,16 A 8,8 0 1 0 12,4" />
+        android:pathData="M 18.93,8 A 8,8 0 1 0 12,4" />
 
-    <!-- Arrowhead at 12 o'clock pointing LEFT (direction of CCW motion at the top) -->
+    <!-- Open chevron arrowhead at 12 o'clock, pointing LEFT (CCW direction) -->
     <path
-        android:fillColor="@color/text_secondary"
-        android:pathData="M 10,4 L 13.5,1.8 L 13.5,6.2 Z" />
+        android:fillColor="#00000000"
+        android:strokeColor="@color/text_secondary"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 14.5,2 L 12,4 L 14.5,6" />
 
-    <!-- Clock hour hand (~10 o'clock) -->
+    <!-- Minute hand pointing to 12 (straight up) -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="@color/text_secondary"
         android:strokeWidth="1.5"
         android:strokeLineCap="round"
-        android:pathData="M 12,12 L 9.8,10.3" />
+        android:pathData="M 12,12 L 12,7.5" />
 
-    <!-- Clock minute hand (pointing to 12) -->
+    <!-- Hour hand pointing to 10 o'clock -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="@color/text_secondary"
         android:strokeWidth="1.5"
         android:strokeLineCap="round"
-        android:pathData="M 12,12 L 12,8.5" />
+        android:pathData="M 12,12 L 8.3,9.5" />
 
     <!-- Center dot -->
     <path
