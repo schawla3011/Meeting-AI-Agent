@@ -741,10 +741,13 @@ class MainActivity : AppCompatActivity() {
 
         val initials = profile.name.split(" ")
             .take(2).joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
-        view.findViewById<TextView>(R.id.sheet_tv_avatar).text      = initials.ifBlank { "P" }
-        view.findViewById<TextView>(R.id.sheet_tv_name).text        = profile.name.ifBlank { profile.email }
-        view.findViewById<TextView>(R.id.sheet_tv_designation).text = profile.designation
-        view.findViewById<TextView>(R.id.sheet_tv_email).text       = profile.email
+        view.findViewById<TextView>(R.id.sheet_tv_avatar).text = initials.ifBlank { "P" }
+        view.findViewById<TextView>(R.id.sheet_tv_name).text  = profile.name.ifBlank { profile.email }
+        view.findViewById<TextView>(R.id.sheet_tv_email).text = profile.email
+
+        val tvDesignation = view.findViewById<TextView>(R.id.sheet_tv_designation)
+        tvDesignation.text       = profile.designation
+        tvDesignation.visibility = if (profile.designation.isBlank()) View.GONE else View.VISIBLE
 
         val companyRow  = view.findViewById<View>(R.id.sheet_row_company)
         val industryRow = view.findViewById<View>(R.id.sheet_row_industry)
