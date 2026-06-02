@@ -27,6 +27,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.antigravity.meetingrecorder.databinding.ActivityMainBinding
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
@@ -254,8 +255,8 @@ class MainActivity : AppCompatActivity() {
         binding.btnSettings.setOnClickListener    { showSettingsDialog() }
         binding.btnLogout.setOnClickListener      { confirmLogout() }
 
-        // Avatar tap → open profile
-        binding.tvAvatar.setOnClickListener { profileLauncher.launch(Intent(this, ProfileActivity::class.java)) }
+        // Avatar tap → profile preview sheet
+        binding.tvAvatar.setOnClickListener { showProfileSheet() }
 
         // Tab chips
         binding.chipSummary.setOnClickListener    { showResultsTab(ResultTab.SUMMARY) }
@@ -722,6 +723,42 @@ class MainActivity : AppCompatActivity() {
             MeetingDatabase.getInstance(applicationContext).meetingDao().insert(meeting)
             Log.i("MainActivity", "Meeting saved to local DB: $filename")
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Profile bottom sheet — quick view with Edit shortcut
+    // ------------------------------------------------------------------
+    private fun showProfileSheet() {
+        val profile = userProfile ?: run {
+            // No profile loaded yet — go straight to edit
+            profileLauncher.launch(Intent(this, ProfileActivity::class.java))
+            return
+        }
+
+        val dialog = BottomSheetDialog(this, R.style.BottomSheetDialogTheme)
+        val view   = layoutInflater.inflate(R.layout.bottom_sheet_profile, null)
+        dialog.setContentView(view)
+
+        val initials = profile.name.split(" ")
+            .take(2).joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
+        view.findViewById<TextView>(R.id.sheet_tv_avatar).text      = initials.ifBlank { "P" }
+        view.findViewById<TextView>(R.id.sheet_tv_name).text        = profile.name.ifBlank { profile.email }
+        view.findViewById<TextView>(R.id.sheet_tv_designation).text = profile.designation
+        view.findViewById<TextView>(R.id.sheet_tv_email).text       = profile.email
+
+        val companyRow  = view.findViewById<View>(R.id.sheet_row_company)
+        val industryRow = view.findViewById<View>(R.id.sheet_row_industry)
+        view.findViewById<TextView>(R.id.sheet_tv_company).text  = profile.company
+        view.findViewById<TextView>(R.id.sheet_tv_industry).text = profile.industry
+        companyRow.visibility  = if (profile.company.isBlank())  View.GONE else View.VISIBLE
+        industryRow.visibility = if (profile.industry.isBlank()) View.GONE else View.VISIBLE
+
+        view.findViewById<TextView>(R.id.sheet_btn_edit).setOnClickListener {
+            dialog.dismiss()
+            profileLauncher.launch(Intent(this, ProfileActivity::class.java))
+        }
+
+        dialog.show()
     }
 
     // ------------------------------------------------------------------
