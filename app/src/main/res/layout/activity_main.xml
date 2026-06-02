@@ -31,7 +31,10 @@
                 android:text="P"
                 android:textColor="@color/white"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="View Profile" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -77,7 +80,7 @@
             android:text="⚙"
             android:textColor="@color/header_text_dim"
             android:textSize="18sp"
-            android:contentDescription="Settings" />
+            android:contentDescription="Theme Settings" />
 
         <TextView
             android:id="@+id/btn_logout"

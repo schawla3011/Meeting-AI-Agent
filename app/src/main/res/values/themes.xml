@@ -23,4 +23,15 @@
         <item name="tabIndicatorColor">@color/primary</item>
         <item name="tabBackground">@color/surface_dark</item>
     </style>
+
+    <!-- Bottom sheet used for profile preview -->
+    <style name="BottomSheetDialogTheme" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/BottomSheetStyle</item>
+    </style>
+
+    <style name="BottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="android:background">@null</item>
+        <item name="backgroundTint">@null</item>
+    </style>
+
 </resources>
